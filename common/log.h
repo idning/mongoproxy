@@ -20,7 +20,6 @@
 
 // which >=LOG_LEVEL  will be print
 
-
 //#define DEBUG 1
 //
 //#ifdef DEBUG
@@ -38,19 +37,18 @@ int log_set_level(int level);
 #define REMOVE_PATH(file) (file)
 
 #define ERROR(fmt, ...) \
-    (log_print(LOG_ERROR,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, __VA_ARGS__), 0)
+    (log_print(LOG_ERROR,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, ## __VA_ARGS__), 0)
 
 #define WARNING(fmt, ...) \
-    (log_print(LOG_WARN,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, __VA_ARGS__), 0)
+    (log_print(LOG_WARN,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, ## __VA_ARGS__), 0)
 
 #define NOTICE(fmt, ...) \
     (log_print(LOG_NOTICE,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, ## __VA_ARGS__), 0)
 
 #define TRACE(fmt, ...) \
-    (log_print(LOG_TRACE,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, __VA_ARGS__), 0)
+    (log_print(LOG_TRACE,  "(%s:%d) [func:%s] "fmt, REMOVE_PATH(__FILE__), __LINE__, __func__, ## __VA_ARGS__), 0)
 
 #define DEBUG(fmt, ...) \
-    (log_print(LOG_DEUBG,  "(%s:%d) [func:%s] " fmt, REMOVE_PATH(__FILE__), __LINE__, __func__,  __VA_ARGS__), 0)
-
+    (log_print(LOG_DEUBG,  "(%s:%d) [func:%s] " fmt, REMOVE_PATH(__FILE__), __LINE__, __func__,  ## __VA_ARGS__), 0)
 
 #endif

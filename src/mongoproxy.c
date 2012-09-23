@@ -24,14 +24,13 @@
 
 //globals
 //
-mongo_replica_set_t * replica_set;
-mongo_conn_t * free_conn = NULL;
+mongo_replica_set_t *replica_set;
+mongo_conn_t *free_conn = NULL;
 
-
-int onexit(){
+int onexit()
+{
     fprintf(stderr, "is going to exit!");
 }
-
 
 void sig_handler(int signum)
 {
@@ -49,25 +48,24 @@ void init_sig_handler()
         signal(SIGTERM, SIG_IGN);
 }
 
-
 int usage()
 {
-    printf("mongoproxy -c path_to_config, default: conf/mongoproxy.cfg ");
-    printf("mongoproxy -v : show version");
+    printf("mongoproxy -c path_to_config, default: conf/mongoproxy.cfg \n");
+    printf("mongoproxy -v : show version\n");
 }
 
 int init(int argc, char **argv)
 {
     int ch;
-    int rundaemon = 1; 
+    int rundaemon = 1;
     int logundefined = 1;
-    char cfgfile[999] = "conf/mongoproxy.cfg"; //default cfg file
+    char cfgfile[999] = "conf/mongoproxy.cfg";  //default cfg file
 
     init_sig_handler();
 
     while ((ch = getopt(argc, argv, "vduc:h?")) != -1) {
         switch (ch) {
-        case 'd':                   //no daemon
+        case 'd':              //no daemon
             rundaemon = 0;
             break;
         case 'c':
@@ -93,13 +91,13 @@ int init(int argc, char **argv)
     cfg_add("CFG_FILE", cfgfile);
 
     // set log
-    char * logfile = cfg_getstr("MONGOPROXY_LOG_FILE", "log/mongoproxy.log");
+    char *logfile = cfg_getstr("MONGOPROXY_LOG_FILE", "log/mongoproxy.log");
     log_init(logfile);
     NOTICE("server start");
 
     int log_level = cfg_getint32("MONGOPROXY_LOG_LEVEL", 0);
     log_set_level(log_level);
-    
+
     //set mox_files
     int max_files = cfg_getint32("MONGOPROXY_MAX_FILES", 65535);
     util_set_max_files(max_files);
@@ -110,7 +108,8 @@ int init(int argc, char **argv)
     return 0;
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
     init(argc, argv);
 
     return 0;

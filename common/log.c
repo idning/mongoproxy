@@ -3,7 +3,7 @@
 
 static int putthread(char **buf)
 {
-    pthread_t  t = pthread_self();
+    pthread_t t = pthread_self();
     sprintf(*buf, "<%x>", (unsigned int)t);
     while (**buf)
         (*buf)++;
@@ -65,10 +65,9 @@ int log_init(char *logfile)
     return 0;
 }
 
-
 int log_print(int level, char *fmt, ...)
 {
-    if (level<log_level) 
+    if (level < log_level)
         return 0;
     char stmp[10240];
     char *buf = stmp;
@@ -89,11 +88,9 @@ int log_print(int level, char *fmt, ...)
     return 0;
 }
 
-
-int log_set_level(int level){
+int log_set_level(int level)
+{
     int old_level = log_level;
     log_level = level;
     return old_level;
 }
-
-

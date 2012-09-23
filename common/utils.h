@@ -4,5 +4,3 @@
 int util_set_max_files(int max_files);
 
 #endif
-
-

@@ -33,7 +33,8 @@ static paramstr *paramhead = NULL;
 static int logundefined = 0;
 static char *config_filename = NULL;
 
-int cfg_add(char * key, char * value){
+int cfg_add(char *key, char *value)
+{
     paramstr *tmp;
     tmp = (paramstr *) malloc(sizeof(paramstr));
     tmp->name = strdup(key);
@@ -42,7 +43,9 @@ int cfg_add(char * key, char * value){
     paramhead = tmp;
     return 0;
 }
-int cfg_add_and_write(char * key, char * value){
+
+int cfg_add_and_write(char *key, char *value)
+{
     cfg_add(key, value);
     char s[1024];
     sprintf(s, "%s = %s", key, value);
@@ -50,7 +53,6 @@ int cfg_add_and_write(char * key, char * value){
     return 0;
 
 }
-
 
 int cfg_load(const char *configfname, int _lu)
 {
@@ -160,8 +162,7 @@ _CONFIG_GEN_FUNCTION(uint16, uint16_t, uint32, "%" PRIu16)
 _CONFIG_GEN_FUNCTION(int32, int32_t, int32, "%" PRId32)
 _CONFIG_GEN_FUNCTION(uint32, uint32_t, uint32, "%" PRIu32)
 _CONFIG_GEN_FUNCTION(int64, int64_t, int64, "%" PRId64)
-_CONFIG_GEN_FUNCTION(uint64, uint64_t, uint64, "%" PRIu64)
-_CONFIG_GEN_FUNCTION(double, double, double, "%lf")
+_CONFIG_GEN_FUNCTION(uint64, uint64_t, uint64, "%" PRIu64) _CONFIG_GEN_FUNCTION(double, double, double, "%lf")
 
 void cfg_append(char *s)
 {

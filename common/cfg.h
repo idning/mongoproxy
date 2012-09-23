@@ -21,9 +21,8 @@
 
 #include <inttypes.h>
 
-
 int cfg_load(const char *fname, int logundefined);
-int cfg_add_and_write(char * key, char * value);
+int cfg_add_and_write(char *key, char *value);
 
 #define _CONFIG_MAKE_PROTOTYPE(fname,type) type cfg_get##fname(const char *name,type def)
 
@@ -39,7 +38,7 @@ _CONFIG_MAKE_PROTOTYPE(uint64, uint64_t);
 _CONFIG_MAKE_PROTOTYPE(int64, int64_t);
 _CONFIG_MAKE_PROTOTYPE(double, double);
 
-void cfg_append(char *s);//TODO : 合二为一.
-int cfg_add(char * key, char * value);
+void cfg_append(char *s);       //TODO : 合二为一.
+int cfg_add(char *key, char *value);
 
 #endif

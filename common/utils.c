@@ -17,7 +17,7 @@ int util_set_max_files(int max_files)
     rls.rlim_max = max_files;
 
     if (setrlimit(RLIMIT_NOFILE, &rls) < 0) {
-        /*fprintf(stderr, "can't change open files limit to %u\n", max_files);*/
+        /*fprintf(stderr, "can't change open files limit to %u\n", max_files); */
         WARNING("can't change open files limit to %u", max_files);
     }
     return 0;
