@@ -104,9 +104,9 @@ int init(int argc, char **argv)
 
     argc -= optind;
     argv += optind;
-
     return 0;
 }
+
 
 int main(int argc, char **argv)
 {

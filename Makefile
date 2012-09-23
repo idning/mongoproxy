@@ -4,7 +4,9 @@ all:
 
 clean:
 	rm mongoproxy 
-	find . -name *.o | xargs rm 
+	find . -name '*.o' | xargs rm -f
+	find . -name '*~' | xargs rm -f
+
 
 
 cs:

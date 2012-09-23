@@ -4,7 +4,7 @@ import glob, os, subprocess, sys
 src = glob.glob('src/*.c') + glob.glob('common/*.c')
 
 LIBS = ['event', 'gcov']
-LIBPATH = ['/usr/local/lib', '/usr/lib'] #顺序很重要
+LIBPATH = [ '/usr/lib', '/usr/local/lib'] #顺序很重要
 
 CPPPATH = ['common']
 
