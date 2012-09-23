@@ -8,10 +8,5 @@
 #include "mongo_server.h"
 
 
-mongo_replica_set_t * replica_set;
-
-int main(){
-
-    return 0;
-}
+/*mongo_replica_set_t * replica_set;*/
 

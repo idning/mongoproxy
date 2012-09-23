@@ -1,2 +1,5 @@
 *.o
 .sconsign.dblite
+mongoproxy
+test/test
+

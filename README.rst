@@ -6,4 +6,4 @@ README.rst
 
 what's better: 
 
-- single process, less ping
+- single process, less ping to backend mongod
