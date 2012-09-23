@@ -2,4 +2,8 @@
 .sconsign.dblite
 mongoproxy
 test/test
+cscope.out
+log
+tags
+
 

@@ -1,9 +1,10 @@
 #include "log.h"
 #include <pthread.h>
+
 static int putthread(char **buf)
 {
     pthread_t  t = pthread_self();
-    sprintf(*buf, "<%x>", t);
+    sprintf(*buf, "<%x>", (unsigned int)t);
     while (**buf)
         (*buf)++;
 }
@@ -16,7 +17,7 @@ static int puttime(char **buf)
     gettimeofday(&tv, NULL);
     curtime = tv.tv_sec;
 
-    strftime(*buf, 30, "%m-%d-%Y %T.", localtime(&curtime));
+    strftime(*buf, 30, "%Y-%m-%d %T.", localtime(&curtime));
     sprintf(*buf + 20, "%06ld ", tv.tv_usec);
     while (**buf)
         (*buf)++;
@@ -30,9 +31,13 @@ static int putlevel(char **buf, int level)
         strcpy(*buf, "[DEBUG] ");
         *buf += strlen("[DEBUG] ");
         return 0;
-    case LOG_INFO:
-        strcpy(*buf, "[INFO] ");
-        *buf += strlen("[INFO] ");
+    case LOG_TRACE:
+        strcpy(*buf, "[TRACE] ");
+        *buf += strlen("[TRACE] ");
+        return 0;
+    case LOG_NOTICE:
+        strcpy(*buf, "[NOTICE] ");
+        *buf += strlen("[NOTICE] ");
         return 0;
     case LOG_WARN:
         strcpy(*buf, "[WARN] ");
@@ -49,7 +54,9 @@ static int putlevel(char **buf, int level)
     }
 }
 
-FILE *fout = NULL;
+static FILE *fout = NULL;
+static int log_level = 0;
+
 int log_init(char *logfile)
 {
     fprintf(stderr, "log_init:  %s\n", logfile);
@@ -58,9 +65,10 @@ int log_init(char *logfile)
     return 0;
 }
 
-inline int logging(int level, char *fmt, ...)
+
+int log_print(int level, char *fmt, ...)
 {
-    if (level<LOG_LEVEL) 
+    if (level<log_level) 
         return 0;
     char stmp[10240];
     char *buf = stmp;
@@ -80,3 +88,12 @@ inline int logging(int level, char *fmt, ...)
 
     return 0;
 }
+
+
+int log_set_level(int level){
+    int old_level = log_level;
+    log_level = level;
+    return old_level;
+}
+
+

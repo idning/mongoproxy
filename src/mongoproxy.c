@@ -20,7 +20,7 @@
 
 #include "mongo_server.h"
 
-#define __VERSION__ "0.0.1"
+#define __MONGOPROXY_VERSION__ "0.0.1"
 
 //globals
 //
@@ -29,13 +29,12 @@ mongo_conn_t * free_conn = NULL;
 
 
 int onexit(){
-
+    fprintf(stderr, "is going to exit!");
 }
 
 
 void sig_handler(int signum)
 {
-    fprintf(stderr, "is going to exit!");
     onexit();
     exit(0);
 }
@@ -68,7 +67,7 @@ int init(int argc, char **argv)
 
     while ((ch = getopt(argc, argv, "vduc:h?")) != -1) {
         switch (ch) {
-        case 'd':                   //run in frontend, default
+        case 'd':                   //no daemon
             rundaemon = 0;
             break;
         case 'c':
@@ -78,24 +77,30 @@ int init(int argc, char **argv)
             logundefined = 1;
             break;
         case 'v':
-            printf("version: %s\n", __VERSION__);
+            printf("version: %s\n", __MONGOPROXY_VERSION__);
             exit(0);
         default:
             usage();
             exit(0);
         }
     }
-    fprintf(stderr, "use %s as config file: ", cfgfile);
+    fprintf(stderr, "use %s as config file\n", cfgfile);
 
     if (cfg_load(cfgfile, logundefined) == 0) {
-        fprintf(stderr, "can't load config file: %s - using defaults\n",
-                cfgfile);
+        fprintf(stderr, "can't load config file: %s\n", cfgfile);
+        exit(0);
     }
     cfg_add("CFG_FILE", cfgfile);
 
+    // set log
     char * logfile = cfg_getstr("MONGOPROXY_LOG_FILE", "log/mongoproxy.log");
     log_init(logfile);
+    NOTICE("server start");
 
+    int log_level = cfg_getint32("MONGOPROXY_LOG_LEVEL", 0);
+    log_set_level(log_level);
+    
+    //set mox_files
     int max_files = cfg_getint32("MONGOPROXY_MAX_FILES", 65535);
     util_set_max_files(max_files);
 
@@ -109,4 +114,5 @@ int main(int argc, char **argv){
     init(argc, argv);
 
     return 0;
+
 }
