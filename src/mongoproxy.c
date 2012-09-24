@@ -25,7 +25,6 @@
 //globals
 //
 mongo_replica_set_t *replica_set;
-mongo_conn_t *free_conn = NULL;
 
 int onexit()
 {
