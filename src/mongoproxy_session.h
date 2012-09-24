@@ -7,6 +7,8 @@
 #ifndef _MONGOPROXY_SESSION_H_
 #define _MONGOPROXY_SESSION_H_
 
+#include "buffer.h"
+
 typedef enum mongoproxy_session_state_s {
     SESSION_STATE_UNSET = 0,
     SESSION_STATE_READ_CLIENT_REQUEST,
@@ -19,10 +21,17 @@ typedef enum mongoproxy_session_state_s {
 typedef struct mongoproxy_session_s{
     struct mongo_conn_s *backend;
     mongoproxy_session_state_t proxy_state;
+
     int fd;
+    struct event ev;
+    char * client_ip;
+    int client_port;
+
+    buffer_t *buf;
 } mongoproxy_session_t;
 
 mongoproxy_session_t * mongoproxy_session_new();
+void mongoproxy_session_free(mongoproxy_session_t * );
 int mongoproxy_session_close(mongoproxy_session_t * sess);
 int mongoproxy_session_force_master(mongoproxy_session_t * sess);
 

@@ -108,7 +108,6 @@ void on_accept(int fd, short ev, void *arg)
     socklen_t client_len = sizeof(client_addr);
     struct client *client;
 
-    /* Accept the new connection. */
     client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
     if (client_fd == -1) {
         warn("accept failed");

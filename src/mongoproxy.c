@@ -1,115 +1,103 @@
 /*
- * file   : test_ptrace.c
+ * file   : mongoproxy.c
  * author : ning
- * date   : 2012-01-13 16:10:27
+ * date   : 2012-09-24 16:22:51
  */
 
-#include <unistd.h>
-
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
+#include <errno.h>
 
-#include <signal.h>
-#include <sys/time.h>
-#include <sys/resource.h>
+#include <event.h>          //libevent
 
 #include "log.h"
-#include "cfg.h"
 
+#include "mongoproxy.h"
+#include "mongoproxy_session.h"
 #include "mongo_server.h"
-
-#define __MONGOPROXY_VERSION__ "0.0.1"
 
 //globals
 //
-mongo_replica_set_t *replica_set;
+static mongo_replica_set_t *g_replica_set;
+static mongoproxy_cfg_t *g_mongoproxy_cfg;
 
-int onexit()
-{
-    fprintf(stderr, "is going to exit!");
+static int _mongoproxy_load_config(){
+
 }
 
-void sig_handler(int signum)
-{
-    onexit();
-    exit(0);
+static int _mongoproxy_read_client_request_done(mongoproxy_session_t * sess){
+
 }
 
-void init_sig_handler()
-{
-    if (signal(SIGINT, sig_handler) == SIG_IGN)
-        signal(SIGINT, SIG_IGN);
-    if (signal(SIGHUP, sig_handler) == SIG_IGN)
-        signal(SIGHUP, SIG_IGN);
-    if (signal(SIGTERM, sig_handler) == SIG_IGN)
-        signal(SIGTERM, SIG_IGN);
-}
-
-int usage()
-{
-    printf("mongoproxy -c path_to_config, default: conf/mongoproxy.cfg \n");
-    printf("mongoproxy -v : show version\n");
-}
-
-int init(int argc, char **argv)
-{
-    int ch;
-    int rundaemon = 1;
-    int logundefined = 1;
-    char cfgfile[999] = "conf/mongoproxy.cfg";  //default cfg file
-
-    init_sig_handler();
-
-    while ((ch = getopt(argc, argv, "vduc:h?")) != -1) {
-        switch (ch) {
-        case 'd':              //no daemon
-            rundaemon = 0;
-            break;
-        case 'c':
-            strncpy(cfgfile, optarg, sizeof(cfgfile));
-            break;
-        case 'u':
-            logundefined = 1;
-            break;
-        case 'v':
-            printf("version: %s\n", __MONGOPROXY_VERSION__);
-            exit(0);
-        default:
-            usage();
-            exit(0);
+static int _mongoproxy_state_machine(mongoproxy_session_t * sess){
+    if(sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST){
+        if (_mongoproxy_read_client_request_done()){
+            sess->proxy_state = SESSION_STATE_SEND_TO_BACKEND;
+            return ;
         }
     }
-    fprintf(stderr, "use %s as config file\n", cfgfile);
+}
 
-    if (cfg_load(cfgfile, logundefined) == 0) {
-        fprintf(stderr, "can't load config file: %s\n", cfgfile);
-        exit(0);
+void on_read(int fd, short ev, void *arg)
+{
+    int client_fd;
+    int len;
+
+    mongoproxy_session_t * sess;
+    sess = (mongoproxy_session_t *) arg;
+
+    len = network_read(fd, sess->buf, sess->buf_len);
+    if (len < 0 ){
+        ERROR("error on read [errno:%d]", errno);
+        return;
     }
-    cfg_add("CFG_FILE", cfgfile);
+    if (len == 0) {
+        printf("lost connection [errno:%d]", errno);
+        close(fd);
+        return;
+    }
 
-    // set log
-    char *logfile = cfg_getstr("MONGOPROXY_LOG_FILE", "log/mongoproxy.log");
-    log_init(logfile);
-    NOTICE("server start");
+    event_set(sess->ev, client_fd, EV_READ, on_read, sess);
+    event_add(sess->ev, NULL);
+    _mongoproxy_state_machine(sess);
+}
 
-    int log_level = cfg_getint32("MONGOPROXY_LOG_LEVEL", 0);
-    log_set_level(log_level);
+void on_accept(int fd, short ev, void *arg)
+{
+    int client_fd;
+    mongoproxy_session_t * sess;
+    client_fd = network_accept(fd, NULL, 0, NULL);
+    if (client_fd == -1) {
+        WARNING("accept failed");
+        return;
+    }
 
-    //set mox_files
-    int max_files = cfg_getint32("MONGOPROXY_MAX_FILES", 65535);
-    util_set_max_files(max_files);
+    sess = mongoproxy_session_new();
+    sess->fd = client_fd;
 
-    argc -= optind;
-    argv += optind;
-    return 0;
+    /*event_set(sess->ev, client_fd, EV_READ | EV_PERSIST, on_read, sess);*/
+    event_set(sess->ev, client_fd, EV_READ, on_read, sess);
+    event_add(sess->ev, NULL);
+
+}
+
+static int _mongoproxy_init(){
+    struct event ev_accept;
+
+    int listen_fd ; 
+    
+    listen_fd = network_server_socket(g_mongoproxy_cfg->listen_host, g_mongoproxy_cfg->listen_port);
+
+    event_init(); //init libevent
+    event_set(&ev_accept, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
+    event_add(&ev_accept, NULL);
+
+    /* Start the libevent event loop. */
+    event_dispatch();
+
 }
 
 
-int main(int argc, char **argv)
-{
-    init(argc, argv);
 
-    return 0;
+int mongoproxy_mainloop(){
+
 }

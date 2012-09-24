@@ -80,17 +80,33 @@ int network_close(int s)
     close(s);
 }
 
-int network_accept(int s)
-{
-    int sock;
 
-    sock = accept(s, (struct sockaddr *)NULL, 0);   //TODO: log client ip
-    if (s < 0) {
+/*
+ * 返回client_fd
+ * client_ip
+ * client_port
+ * */
+int network_accept(int s, char * client_ip, int client_ip_len , int *pport)
+{
+    int client_fd;
+    struct sockaddr_in client_sa;
+    socklen_t sa_len = sizeof(client_sa);
+
+    client_fd = accept(s, (struct sockaddr *)&client_sa, &sa_len);
+    if (client_fd < 0) {
         ERROR("accept error: %s\n", strerror(errno));
         return -1;
     }
 
-    return sock;
+    network_nonblock(client_fd);
+
+    if (client_ip && client_ip_len){
+        strncpy(client_ip,inet_ntoa(client_sa.sin_addr),  client_ip_len);
+    }
+    if (pport){
+        *pport = (int) ntohs(client_sa.sin_port);
+    }
+    return client_fd;
 }
 
 int32_t network_read(int s, void *buff, uint32_t len)
