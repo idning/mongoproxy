@@ -1,7 +1,9 @@
 
-typedef struct mongo_proxy_cfg_s {
+typedef struct mongoproxy_cfg_s {
     char *host;
-    int port;
-    int is_master;
-    int last_ping;
-} mongo_proxy_cfg_t;
+} mongoproxy_cfg_t;
+
+int mongoproxy_load_config(); 
+int mongoproxy_init(); 
+
+

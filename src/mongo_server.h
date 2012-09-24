@@ -23,7 +23,7 @@ typedef struct mongo_replica_set_s {
     mongo_server_t *master;
 } mongo_replica_set_t;
 
-void mongo_replica_set_init(mongo_replica_set_t * replica_set, mongo_proxy_cfg_t * cfg);
+void mongo_replica_set_init(mongo_replica_set_t * replica_set, mongoproxy_cfg_t * cfg);
 
 typedef enum mongo_conn_state_s {
     MONGO_CONN_STATE_UNSET = 0, 
@@ -44,8 +44,8 @@ struct mongo_conn_s {
 mongo_conn_t *mongo_server_new_conn(mongo_server_t * server);
 //mongo_conn_t *mongo_server_get_conn(mongo_server_t * server);
 
-//mongo_conn_t *mongo_replica_set_new_conn(mongo_replica_set_t* replica_set, int master);
-mongo_conn_t *mongo_replica_set_get_conn(mongo_replica_set_t* replica_set, int master);
+//mongo_conn_t *mongo_replica_set_new_conn(mongo_replica_set_t* replica_set, int primary);
+mongo_conn_t *mongo_replica_set_get_conn(mongo_replica_set_t* replica_set, int primary);
 
 void mongo_conn_connect(mongo_conn_t * conn);
 void mongo_conn_send(mongo_conn_t * conn, void *buf, int len);
