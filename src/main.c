@@ -12,7 +12,9 @@
 
 int onexit()
 {
+    /*WARNING("is going to exit!");*/
     fprintf(stderr, "is going to exit!");
+    return 0 ;
 }
 
 void sig_handler(int signum)
@@ -31,7 +33,7 @@ void init_sig_handler()
         signal(SIGTERM, SIG_IGN);
 }
 
-int usage()
+void usage()
 {
     printf("mongoproxy -c path_to_config, default: conf/mongoproxy.cfg \n");
     printf("mongoproxy -v : show version\n");
@@ -94,6 +96,10 @@ int init(int argc, char **argv)
 int main(int argc, char **argv)
 {
     init(argc, argv);
+    if (mongoproxy_init()){
+        ERROR("error on mongoproxy_init");
+        exit(0);
+    }
     mongoproxy_mainloop();
     return 0;
 }

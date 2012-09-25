@@ -35,6 +35,7 @@ typedef struct mongoproxy_cfg_s {
     char *backend;
     char *listen_host;
     int listen_port;
+    int use_replset;
 } mongoproxy_cfg_t;
 
 typedef struct mongoproxy_server_s{
@@ -42,6 +43,7 @@ typedef struct mongoproxy_server_s{
     mongo_replset_t replset;
 } mongoproxy_server_t;
 
+int mongoproxy_init();
 int mongoproxy_mainloop(); 
 
 extern mongoproxy_server_t g_server;

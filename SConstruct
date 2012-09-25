@@ -8,8 +8,8 @@ LIBPATH = [ '/usr/lib', '/usr/local/lib'] #顺序很重要
 
 CPPPATH = ['common']
 
-CCFLAGS='' # -pg is for gprof  osd 不能用 -D_FILE_OFFSET_BITS=64
-LINKFLAGS=' '
+CCFLAGS='-Wall -g ' # -pg is for gprof  osd 不能用 -D_FILE_OFFSET_BITS=64
+LINKFLAGS='-g '
 
 #CCFLAGS='-D_DEBUG -Wall -g -Wno-pointer-sign -pg -fprofile-arcs -ftest-coverage' # -pg is for gprof
 #LINKFLAGS=' -pg '

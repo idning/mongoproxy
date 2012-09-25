@@ -5,5 +5,4 @@ test/test
 cscope.out
 log
 tags
-
-
+core.*

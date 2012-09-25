@@ -7,6 +7,7 @@ static int putthread(char **buf)
     sprintf(*buf, "<%x>", (unsigned int)t);
     while (**buf)
         (*buf)++;
+    return 0;
 }
 
 static int puttime(char **buf)
