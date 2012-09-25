@@ -24,14 +24,25 @@ static int _mongoproxy_load_config(){
 
 }
 
-static int _mongoproxy_read_client_request_done(mongoproxy_session_t * sess){
+#define MONGO_HEAD_LEN (sizeof(int))
 
+
+static int _mongoproxy_read_client_request_done(mongoproxy_session_t * sess){
+    if ( sess->buf->used < MONGO_HEAD_LEN )
+        return 0;
+    int body_len = *(int*) sess->buf->ptr;
+    return sess->buf->used >= body_len;
+}
+
+static void _mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state){
+    DEBUG("STATE %d => %d", sess->proxy_state, state);
+    sess->proxy_state = state;
 }
 
 static int _mongoproxy_state_machine(mongoproxy_session_t * sess){
     if(sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST){
-        if (_mongoproxy_read_client_request_done()){
-            sess->proxy_state = SESSION_STATE_SEND_TO_BACKEND;
+        if (_mongoproxy_read_client_request_done(sess)){
+            _mongoproxy_set_state(sess, SESSION_STATE_SEND_TO_BACKEND);
             return ;
         }
     }
@@ -39,13 +50,12 @@ static int _mongoproxy_state_machine(mongoproxy_session_t * sess){
 
 void on_read(int fd, short ev, void *arg)
 {
-    int client_fd;
     int len;
 
     mongoproxy_session_t * sess;
     sess = (mongoproxy_session_t *) arg;
 
-    len = network_read(fd, sess->buf, sess->buf_len);
+    len = network_read(fd, sess->buf->ptr, sess->buf->size);
     if (len < 0 ){
         ERROR("error on read [errno:%d]", errno);
         return;
@@ -56,8 +66,8 @@ void on_read(int fd, short ev, void *arg)
         return;
     }
 
-    event_set(sess->ev, client_fd, EV_READ, on_read, sess);
-    event_add(sess->ev, NULL);
+    event_set(&(sess->ev), fd, EV_READ, on_read, sess);
+    event_add(&(sess->ev), NULL);
     _mongoproxy_state_machine(sess);
 }
 
@@ -75,9 +85,8 @@ void on_accept(int fd, short ev, void *arg)
     sess->fd = client_fd;
 
     /*event_set(sess->ev, client_fd, EV_READ | EV_PERSIST, on_read, sess);*/
-    event_set(sess->ev, client_fd, EV_READ, on_read, sess);
-    event_add(sess->ev, NULL);
-
+    event_set(&(sess->ev), client_fd, EV_READ, on_read, sess);
+    event_add(&(sess->ev), NULL);
 }
 
 static int _mongoproxy_init(){
