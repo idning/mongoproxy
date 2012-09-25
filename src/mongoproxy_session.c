@@ -47,10 +47,10 @@ int mongoproxy_session_close(mongoproxy_session_t * sess){
 
 int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary){
     if (sess->backend){
-        mongo_replica_set_release_conn(sess->backend);
+        mongo_replset_release_conn(sess->backend);
         sess->backend = NULL;
     }
 
-    sess->backend = mongo_replica_set_get_conn(primary);
+    sess->backend = mongo_replset_get_conn(primary);
 }
 

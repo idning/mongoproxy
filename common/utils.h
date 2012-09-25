@@ -3,4 +3,6 @@
 
 int util_set_max_files(int max_files);
 
+int daemonize(int nochdir, int noclose);
+
 #endif

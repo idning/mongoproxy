@@ -7,4 +7,4 @@
 #include<stdio.h>
 #include "mongo_server.h"
 
-/*mongo_replica_set_t * replica_set;*/
+/*mongo_replset_t * replset;*/

@@ -8,11 +8,13 @@
 #define _MONGOPROXY_SESSION_H_
 
 #include "buffer.h"
+#include <event.h>
 
 typedef enum mongoproxy_session_state_s {
     SESSION_STATE_UNSET = 0,
     SESSION_STATE_READ_CLIENT_REQUEST,
-    SESSION_STATE_SEND_TO_BACKEND,
+    SESSION_STATE_PROCESSING,
+    //SESSION_STATE_SEND_TO_BACKEND,
     SESSION_STATE_RECV_FROM_BACKEND,
     SESSION_STATE_SEND_BACK_TO_CLIENT
 }mongoproxy_session_state_t;

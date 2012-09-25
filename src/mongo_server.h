@@ -40,21 +40,19 @@ void mongo_conn_send(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_recv(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_close(mongo_conn_t * conn);
 
-
-typedef struct mongo_replica_set_s {
-    int replica_set_size;
+typedef struct mongo_replset_s {
+    int replset_size;
     mongo_server_t *slaves[MONGO_MAX_SERVERS];
     mongo_server_t *master;
-} mongo_replica_set_t;
+} mongo_replset_t;
 
-void mongo_replica_set_init(mongo_replica_set_t * replica_set, mongoproxy_cfg_t * cfg);
 
 mongo_conn_t *mongo_server_new_conn(mongo_server_t * server);
-//mongo_conn_t *mongo_server_get_conn(mongo_server_t * server);
 
-//mongo_conn_t *mongo_replica_set_new_conn(mongo_replica_set_t* replica_set, int primary);
-mongo_conn_t *mongo_replica_set_get_conn(mongo_replica_set_t* replica_set, int primary);
 
-mongo_conn_t *mongo_replica_set_release_conn(mongo_conn_t * conn);
+void mongo_replset_init(mongo_replset_t * replica_set, mongoproxy_cfg_t * cfg);
+mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replica_set, int primary);
+
+mongo_conn_t *mongo_replset_release_conn(mongo_conn_t * conn);
 
 #endif
