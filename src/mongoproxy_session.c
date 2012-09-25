@@ -17,8 +17,8 @@ mongoproxy_session_t * mongoproxy_session_new(){
     }
 
     sess->proxy_state = SESSION_STATE_UNSET;
-    sess->buf = buffer_new();
-
+    sess->buf = buffer_new(MONGOPROXY_DEFAULT_BUF_SIZE);
+    return sess;
 }
 
 void mongoproxy_session_free(mongoproxy_session_t * sess){
@@ -37,14 +37,16 @@ void mongoproxy_session_free(mongoproxy_session_t * sess){
 
 int mongoproxy_session_close(mongoproxy_session_t * sess){
 
+    return 0;
 }
 
 int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary){
-    if (sess->backend){
-        mongo_replset_release_conn(sess->backend);
-        sess->backend = NULL;
+    if (sess->backend_conn){
+        mongo_replset_release_conn(sess->backend_conn);
+        sess->backend_conn = NULL;
     }
     mongo_replset_t * replset = &(g_server.replset);
-    sess->backend = mongo_replset_get_conn(replset, primary);
+    sess->backend_conn = mongo_replset_get_conn(replset, primary);
+    return 0;
 }
 

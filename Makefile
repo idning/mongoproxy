@@ -3,7 +3,7 @@ all:
 
 
 clean:
-	rm mongoproxy 
+	rm bin/*
 	find . -name '*.o' | xargs rm -f
 	find . -name '*~' | xargs rm -f
 

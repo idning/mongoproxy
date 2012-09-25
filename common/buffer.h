@@ -16,7 +16,7 @@ typedef struct buffer_s{
 
 
 
-buffer_t * buffer_new();
+buffer_t * buffer_new(int len);
 void buffer_free(buffer_t * b);
 void buffer_reset(buffer_t *b);
 

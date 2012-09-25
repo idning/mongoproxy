@@ -33,9 +33,15 @@ static void _mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_sessio
 }
 
 static int _mongoproxy_state_machine(mongoproxy_session_t * sess){
+    mongo_replset_t * replset;
+
+    replset = &(g_server.replset);
+
     if(sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST){
         if (_mongoproxy_read_client_request_done(sess)){
             _mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
+            sess->backend_conn = mongo_replset_get_conn(replset, 0);
+
             return 0;
         }
     }

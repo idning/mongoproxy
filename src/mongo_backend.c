@@ -73,8 +73,10 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replset, int primary){
     return mongo_backend_new_conn(backend);
 }
 
-mongo_conn_t *mongo_replset_release_conn(mongo_conn_t * conn){
+int mongo_replset_release_conn(mongo_conn_t * conn){
     mongo_backend_t * backend = conn->backend;
     conn->next = backend->free_conn;
     backend->free_conn = conn;
+    return 0;
 }
+

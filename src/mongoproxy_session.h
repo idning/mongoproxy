@@ -7,7 +7,7 @@
 #ifndef _MONGOPROXY_SESSION_H_
 #define _MONGOPROXY_SESSION_H_
 
-#include "buffer.h"
+#include "mongoproxy.h"
 #include <event.h>
 
 typedef enum mongoproxy_session_state_s {
@@ -21,7 +21,7 @@ typedef enum mongoproxy_session_state_s {
 
 
 typedef struct mongoproxy_session_s{
-    struct mongo_conn_s *backend;
+    mongo_conn_t *backend_conn; 
     mongoproxy_session_state_t proxy_state;
 
     int fd;
