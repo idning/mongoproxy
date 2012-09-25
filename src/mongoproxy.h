@@ -8,7 +8,7 @@
 #define _MONGOPROXY_H_
 
 #include "mongoproxy_session.h"
-#include "mongo_server.h"
+#include "mongo_backend.h"
 
 typedef struct mongoproxy_cfg_s {
     char *backend;
@@ -22,5 +22,7 @@ typedef struct mongoproxy_server_s{
 } mongoproxy_server_t;
 
 int mongoproxy_mainloop(); 
+
+extern mongoproxy_server_t g_server;
 
 #endif

@@ -11,7 +11,7 @@
 
 #include "mongoproxy.h"
 #include "mongoproxy_session.h"
-#include "mongo_server.h"
+#include "mongo_backend.h"
 
 mongoproxy_session_t * mongoproxy_session_new(){
     mongoproxy_session_t * sess;
@@ -50,7 +50,7 @@ int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary){
         mongo_replset_release_conn(sess->backend);
         sess->backend = NULL;
     }
-
-    sess->backend = mongo_replset_get_conn(primary);
+    mongo_replset_t * replset = &(g_server.replset);
+    sess->backend = mongo_replset_get_conn(replset, primary);
 }
 

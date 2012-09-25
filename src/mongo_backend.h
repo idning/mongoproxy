@@ -3,11 +3,9 @@
 
 #define  MONGO_MAX_SERVERS 12
 
-#include "mongoproxy.h"
-
 typedef struct mongo_conn_s mongo_conn_t;
 
-typedef struct mongo_server_s {
+typedef struct mongo_backend_s {
     char *host;
     int port;
     int is_master;
@@ -16,7 +14,7 @@ typedef struct mongo_server_s {
     int connection_cnt;             // used for load balance
     mongo_conn_t * free_conn;
 
-} mongo_server_t;
+} mongo_backend_t;
 
 
 typedef enum mongo_conn_state_s {
@@ -30,7 +28,7 @@ typedef enum mongo_conn_state_s {
 
 struct mongo_conn_s {
     struct mongo_conn_s *next;  // in free_conn linked list
-    mongo_server_t *server;
+    mongo_backend_t *server;
     int fd;
     mongo_conn_state_t  conn_state;
 };
@@ -42,15 +40,14 @@ void mongo_conn_close(mongo_conn_t * conn);
 
 typedef struct mongo_replset_s {
     int replset_size;
-    mongo_server_t *slaves[MONGO_MAX_SERVERS];
-    mongo_server_t *master;
+    mongo_backend_t *slaves[MONGO_MAX_SERVERS];
+    mongo_backend_t *master;
 } mongo_replset_t;
 
 
-mongo_conn_t *mongo_server_new_conn(mongo_server_t * server);
+mongo_conn_t *mongo_server_new_conn(mongo_backend_t * server);
 
-
-void mongo_replset_init(mongo_replset_t * replica_set, mongoproxy_cfg_t * cfg);
+//void mongo_replset_init(mongo_replset_t * replica_set, mongoproxy_cfg_t * cfg);
 mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replica_set, int primary);
 
 mongo_conn_t *mongo_replset_release_conn(mongo_conn_t * conn);

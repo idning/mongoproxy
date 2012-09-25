@@ -1,3 +1,7 @@
+
+#ifndef _LOG_H_
+#define _LOG_H_
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -7,9 +11,6 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-#ifndef _LOG_H__
-#define _LOG_H__
 
 #define  LOG_ALL 0
 #define  LOG_DEUBG 1
@@ -52,3 +53,4 @@ int log_set_level(int level);
     (log_print(LOG_DEUBG,  "(%s:%d) [func:%s] " fmt, REMOVE_PATH(__FILE__), __LINE__, __func__,  ## __VA_ARGS__), 0)
 
 #endif
+

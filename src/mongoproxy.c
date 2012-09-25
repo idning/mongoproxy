@@ -13,11 +13,11 @@
 
 #include "mongoproxy.h"
 #include "mongoproxy_session.h"
-#include "mongo_server.h"
+#include "mongo_backend.h"
 
 //globals
 //
-static mongoproxy_server_t g_server;
+mongoproxy_server_t g_server;
 
 static int _mongoproxy_load_config(){
 
@@ -29,6 +29,7 @@ static int _mongoproxy_load_config(){
 static int _mongoproxy_read_client_request_done(mongoproxy_session_t * sess){
     if ( sess->buf->used < MONGO_HEAD_LEN )
         return 0;
+
     int body_len = *(int*) sess->buf->ptr;
     return sess->buf->used >= body_len;
 }
@@ -90,10 +91,10 @@ void on_accept(int fd, short ev, void *arg)
 
 static int _mongoproxy_init(){
     struct event ev_accept;
-
+    mongoproxy_cfg_t * cfg = &(g_server.cfg);
     int listen_fd ; 
-    
-    listen_fd = network_server_socket(g_mongoproxy_cfg->listen_host, g_mongoproxy_cfg->listen_port);
+
+    listen_fd = network_server_socket(cfg->listen_host, cfg->listen_port);
 
     event_init(); //init libevent
     event_set(&ev_accept, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
