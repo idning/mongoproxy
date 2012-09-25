@@ -4,14 +4,8 @@
  * date   : 2012-09-24 00:54:30
  */
 
-#include<stdio.h>
-
-#include "log.h"
-#include "buffer.h"
 
 #include "mongoproxy.h"
-#include "mongoproxy_session.h"
-#include "mongo_backend.h"
 
 mongoproxy_session_t * mongoproxy_session_new(){
     mongoproxy_session_t * sess;

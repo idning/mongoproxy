@@ -7,6 +7,27 @@
 #ifndef _MONGOPROXY_H_
 #define _MONGOPROXY_H_
 
+
+
+#include <unistd.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
+
+#include <signal.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#include <event.h>
+
+#include "log.h"
+#include "cfg.h"
+#include "buffer.h"
+#include "network.h"
+#include "utils.h"
+
 #include "mongoproxy_session.h"
 #include "mongo_backend.h"
 

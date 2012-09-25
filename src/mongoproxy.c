@@ -4,13 +4,6 @@
  * date   : 2012-09-24 16:22:51
  */
 
-#include <stdio.h>
-#include <errno.h>
-
-#include <event.h>          //libevent
-
-#include "log.h"
-
 #include "mongoproxy.h"
 #include "mongoproxy_session.h"
 #include "mongo_backend.h"

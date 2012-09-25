@@ -4,19 +4,6 @@
  * date   : 2012-01-13 16:10:27
  */
 
-#include <unistd.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-
-#include <signal.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-
-#include "log.h"
-#include "cfg.h"
 
 #include "mongoproxy.h"
 
