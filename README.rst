@@ -9,3 +9,9 @@ what's better:
 
 - single process, less ping to backend mongod
 - one client => one server conn
+
+
+design:
+
+- one backend is a mongd
+- backends became a replset

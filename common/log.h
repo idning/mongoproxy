@@ -17,7 +17,7 @@
 #define  LOG_TRACE 2
 #define  LOG_NOTICE 4
 #define  LOG_WARN 8
-#define  LOG_ERROR 322
+#define  LOG_ERROR 16
 
 // which >=LOG_LEVEL  will be print
 

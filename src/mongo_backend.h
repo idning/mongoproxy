@@ -4,6 +4,9 @@
 // 12 is enough
 #define  MONGO_MAX_SERVERS 32
 
+#include "mongoproxy.h"
+#include "mongo_backend.h"
+
 typedef struct mongo_conn_s mongo_conn_t;
 
 typedef struct mongo_backend_s {
@@ -27,6 +30,23 @@ typedef enum mongo_conn_state_s {
     MONGO_CONN_STATE_CLOSED
 }mongo_conn_state_t;
 
+
+typedef struct mongo_replset_s {
+    int slave_cnt;
+    mongo_backend_t *slaves[MONGO_MAX_SERVERS];
+    mongo_backend_t *primary;
+} mongo_replset_t;
+
+
+mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend);
+
+//void mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg);
+mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replset, int primary);
+
+int mongo_replset_release_conn(mongo_conn_t * conn);
+
+int mongo_replset_init(mongo_replset_t* replset, char * backen);
+
 struct mongo_conn_s {
     mongo_conn_t *next;  // in free_conn linked list
     mongo_backend_t *backend;
@@ -40,18 +60,5 @@ void mongo_conn_send(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_recv(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_close(mongo_conn_t * conn);
 
-typedef struct mongo_replset_s {
-    int slave_cnt;
-    mongo_backend_t *slaves[MONGO_MAX_SERVERS];
-    mongo_backend_t *primary;
-} mongo_replset_t;
-
-
-mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend);
-
-//void mongo_replset_init(mongo_replset_t * replica_set, mongoproxy_cfg_t * cfg);
-mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replica_set, int primary);
-
-int mongo_replset_release_conn(mongo_conn_t * conn);
 
 #endif

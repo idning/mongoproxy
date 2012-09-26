@@ -41,7 +41,7 @@ int network_server_socket(char *host, int port)
         return -1;
     }
 
-    NOTICE("listen on %s:%p", host, port);
+    NOTICE("listen on %s:%d", host, port);
     return s;
 }
 
@@ -50,9 +50,8 @@ int network_server_socket(char *host, int port)
 */
 int network_client_socket(char *host, int port)
 {
-    int status;
-
     int s = socket(AF_INET, SOCK_STREAM, 0);
+
     if (s < 0) {
         ERROR("can't create socket !!!");
         return -1;
@@ -70,14 +69,14 @@ int network_client_socket(char *host, int port)
         DEBUG("connecting to %s:%d ... ", host, port);
         return s;
     }
-    ERROR("connect to %s:%d [errno:]", host, port, errno);
+    ERROR("connect to %s:%d [errno:%d(%s)]", host, port, errno, strerror(errno));
     return -1;
 }
 
 int network_close(int s)
 {
     DEBUG("close(%d)", s);
-    close(s);
+    return close(s);
 }
 
 
@@ -94,7 +93,7 @@ int network_accept(int s, char * client_ip, int client_ip_len , int *pport)
 
     client_fd = accept(s, (struct sockaddr *)&client_sa, &sa_len);
     if (client_fd < 0) {
-        ERROR("accept error: %s\n", strerror(errno));
+        ERROR("accept error: %d: %s\n", errno, strerror(errno));
         return -1;
     }
 
@@ -116,12 +115,18 @@ int32_t network_read(int s, void *buff, uint32_t len)
 
     while (recvd < len) {
         i = read(s, ((uint8_t *) buff) + recvd, len - recvd);
-        if (i <= 0) {
-            return i;
+        if (i <= 0){
+            DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
+            if (errno == EAGAIN) { // we will return success
+                break;
+            }
+            ERROR("oops, read from [fd:%d] failed: [errno:%d(%s)]", s, errno, strerror(errno));
+            return -1;
         }
         recvd += i;
     }
 
+    DEBUG("[fd:%d] %d bytes readed", s, recvd);
     return recvd;
 }
 
@@ -133,11 +138,12 @@ int32_t network_write(int s, const void *buff, uint32_t len)
     while (sent < len) {
         i = write(s, ((const uint8_t *)buff) + sent, len - sent);
         if (i <= 0) {
+            DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
             return i;
         }
         sent += i;
     }
-
+    DEBUG("[fd:%d] %d bytes sent", s, sent);
     return sent;
 }
 
