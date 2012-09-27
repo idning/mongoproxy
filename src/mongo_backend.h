@@ -30,6 +30,8 @@ typedef enum mongo_conn_state_s {
     MONGO_CONN_STATE_CLOSED
 }mongo_conn_state_t;
 
+char * mongo_conn_state_name(mongo_conn_state_t state);
+
 
 typedef struct mongo_replset_s {
     int slave_cnt;
@@ -60,5 +62,6 @@ void mongo_conn_send(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_recv(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_close(mongo_conn_t * conn);
 
+void mongo_backend_on_connected(int fd, short ev, void *arg);
 
 #endif

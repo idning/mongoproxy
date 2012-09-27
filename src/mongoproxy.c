@@ -14,7 +14,9 @@ mongoproxy_server_t g_server;
 
 #define MONGO_HEAD_LEN (sizeof(int))
 
-static int _mongoproxy_read_client_request_done(mongoproxy_session_t * sess){
+void on_write(int fd, short ev, void *arg);
+
+static int _mongoproxy_read_done(mongoproxy_session_t * sess){
     if ( sess->buf->used < MONGO_HEAD_LEN )
         return 0;
     int body_len = *(int*) sess->buf->ptr;
@@ -23,26 +25,101 @@ static int _mongoproxy_read_client_request_done(mongoproxy_session_t * sess){
     return sess->buf->used >= body_len;
 }
 
+
+static char mongoproxy_session_state_names[][50] = {
+    "SESSION_STATE_UNSET",
+    "SESSION_STATE_READ_CLIENT_REQUEST",
+    "SESSION_STATE_PROCESSING",
+    "SESSION_STATE_SEND_BACK_TO_CLIENT",
+    "SESSION_STATE_FINISH"
+};
+
+char * mongoproxy_session_state_name(mongoproxy_session_state_t state){
+    return mongoproxy_session_state_names[(int)state];
+}
+
+
 static void _mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state){
-    DEBUG("MONGO_PROXY_STATE CHANGED %d => %d", sess->proxy_state, state);
+    DEBUG("set mongo_proxy_state %s => %s", 
+            mongoproxy_session_state_name(sess->proxy_state), mongoproxy_session_state_name(state));
     sess->proxy_state = state;
 }
 
-static int _mongoproxy_state_machine(mongoproxy_session_t * sess){
-    DEBUG("in state machine [sess->proxy_state:%d]", sess->proxy_state);
+/*
+ * the sub state_machine
+ * */
+int mongo_conn_state_machine(mongoproxy_session_t * sess){
+    mongo_conn_t * conn = sess->backend_conn;
+
+    DEBUG("in state machine 2 [conn->conn_state:%s]", 
+        mongo_conn_state_name(conn->conn_state) );
+
+    if(conn->conn_state == MONGO_CONN_STATE_RECV_RESPONSE){
+        if (_mongoproxy_read_done(sess)){
+            _mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
+        }
+    }
+    return 0;
+}
+
+int mongoproxy_state_machine(mongoproxy_session_t * sess){
+    DEBUG("in state machine [sess->proxy_state:%s]", 
+        mongoproxy_session_state_name(sess->proxy_state));
+
     mongo_replset_t * replset;
 
     replset = &(g_server.replset);
 
     if(sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST){
-        if (_mongoproxy_read_client_request_done(sess)){
+        if (_mongoproxy_read_done(sess)){
             _mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
-            sess->backend_conn = mongo_replset_get_conn(replset, 0);
-
+            mongoproxy_session_select_backend(sess, 0);
             return 0;
         }
     }
+    if (sess->proxy_state == SESSION_STATE_PROCESSING){ //run sub state machine
+        mongo_conn_state_machine(sess);
+    }
+    if (sess->proxy_state == SESSION_STATE_SEND_BACK_TO_CLIENT){ 
+        //enable client_fd write event
+        //
+        event_set(&(sess->ev), sess->fd, EV_WRITE, on_write, sess);
+        event_add(&(sess->ev), NULL);
+
+        /*mongo_conn_state_machine(sess);*/
+    }
+    
+
     return 0;
+}
+
+void on_timer(int fd, short ev, void *arg){
+
+}
+
+void on_write(int fd, short what, void *arg)
+{
+    int len;
+
+    if (what&EV_READ){
+        return on_read(fd, what, arg);
+    }
+
+    DEBUG("[fd:%d] [what:0x%x]on write", fd, what);
+
+    mongoproxy_session_t * sess = ( mongoproxy_session_t * ) arg;
+    mongo_conn_t * conn = sess->backend_conn;
+
+    len = network_write(fd, sess->buf->ptr, sess->buf->used);
+    if (len < 0 ){
+        ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
+        return;
+    }
+    if (len == sess->buf->used){ //all sent
+        _mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
+        sess->buf->used=0;
+    }
+
 }
 
 void on_read(int fd, short ev, void *arg)
@@ -66,7 +143,7 @@ void on_read(int fd, short ev, void *arg)
     }
     sess->buf->used += len;
 
-    _mongoproxy_state_machine(sess);
+    mongoproxy_state_machine(sess);
     event_set(&(sess->ev), fd, EV_READ, on_read, sess);
     event_add(&(sess->ev), NULL);
 }

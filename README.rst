@@ -15,3 +15,11 @@ design:
 
 - one backend is a mongd
 - backends became a replset
+
+
+实现: 
+既要主动连后端 发请求，又要有proxy 型.
+
+Reference:
+
+http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPQUERY

@@ -62,7 +62,7 @@ int network_client_socket(char *host, int port)
     _fill_sockaddr(&sa, host, port);
 
     if (connect(s, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) >= 0) {
-        DEBUG("connected to %s:%d immediately", host, port);
+        DEBUG("connected to %s:%d immediately, got [fd:%d]", host, port, s);
         return s;
     }
     if (errno == EINPROGRESS) {

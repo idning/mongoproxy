@@ -9,8 +9,74 @@
 
 /*mongo_replset_t * replset;*/
 
-void _mongo_backend_on_connected(int fd, short ev, void *arg){
 
+static char mongo_conn_state_names[][50] = {
+    "MONGO_CONN_STATE_UNSET", 
+    "MONGO_CONN_STATE_CONNECTING", 
+    "MONGO_CONN_STATE_CONNECTED", 
+    "MONGO_CONN_STATE_SEND_REQUEST", 
+    "MONGO_CONN_STATE_RECV_RESPONSE", 
+    "MONGO_CONN_STATE_CLOSED"
+};
+
+char * mongo_conn_state_name(mongo_conn_state_t state){
+    return mongo_conn_state_names[(int)state];
+}
+
+
+int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state){
+    DEBUG("set mongo_conn state %s => %s", 
+            mongo_conn_state_name(conn->conn_state), mongo_conn_state_name(state));
+    conn->conn_state = state;
+    return 0;
+}
+
+void mongo_backend_on_read(int fd, short ev, void *arg)
+{
+    int len;
+
+    DEBUG("[fd:%d] on read", fd);
+    mongoproxy_session_t * sess;
+    sess = (mongoproxy_session_t *) arg;
+
+    sess->buf->used = 0;
+    len = network_read(fd, sess->buf->ptr, sess->buf->size);
+    if (len < 0 ){
+        ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));
+        return;
+    }
+    if (len == 0) {
+        ERROR("lost connection [errno:%d(%s)]", errno, strerror(errno));
+        close(fd);
+        return;
+    }
+    sess->buf->used += len;
+    mongoproxy_state_machine(sess);
+}
+
+void mongo_backend_on_connected(int fd, short ev, void *arg)
+{
+    int len;
+
+    DEBUG("[fd:%d] on connected", fd);
+
+    mongoproxy_session_t * sess = ( mongoproxy_session_t * ) arg;
+    mongo_conn_t * conn = sess->backend_conn;
+
+    mongo_conn_set_state(conn, MONGO_CONN_STATE_SEND_REQUEST);
+
+    len = network_write(fd, sess->buf->ptr, sess->buf->used);
+    if (len < 0 ){
+        ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
+        return;
+    }
+    if (len == sess->buf->used){ //all sent
+        mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
+        //enable read event
+        //
+        event_set(&(conn->ev), fd, EV_READ, mongo_backend_on_read, sess);
+        event_add(&(conn->ev), NULL);
+    }
 }
 
 mongo_backend_t * mongo_backend_new(char * host, int port){
@@ -31,6 +97,7 @@ mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend){
     fd = network_client_socket(backend->host, backend->port);
     if (fd <= 0){
         ERROR("error on get new connection to backend");
+        return NULL;
     }
 
     conn = (mongo_conn_t * ) malloc(sizeof(mongo_conn_t));
@@ -41,8 +108,6 @@ mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend){
 
     backend->connection_cnt++;
 
-    event_set(&(conn->ev), fd, EV_WRITE, _mongo_backend_on_connected, conn);
-    event_add(&(conn->ev), NULL);
 
     return conn;
 }
