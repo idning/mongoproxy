@@ -11,12 +11,12 @@
 
 
 static char mongo_conn_state_names[][50] = {
-    "MONGO_CONN_STATE_UNSET", 
-    "MONGO_CONN_STATE_CONNECTING", 
-    "MONGO_CONN_STATE_CONNECTED", 
-    "MONGO_CONN_STATE_SEND_REQUEST", 
-    "MONGO_CONN_STATE_RECV_RESPONSE", 
-    "MONGO_CONN_STATE_CLOSED"
+    "mongo_conn_state_UNSET", 
+    "mongo_conn_state_CONNECTING", 
+    "mongo_conn_state_CONNECTED", 
+    "mongo_conn_state_SEND_REQUEST", 
+    "mongo_conn_state_RECV_RESPONSE", 
+    "mongo_conn_state_CLOSED"
 };
 
 char * mongo_conn_state_name(mongo_conn_state_t state){
@@ -54,7 +54,7 @@ void mongo_backend_on_read(int fd, short ev, void *arg)
     mongoproxy_state_machine(sess);
 }
 
-void mongo_backend_on_connected(int fd, short ev, void *arg)
+void mongo_backend_on_write(int fd, short ev, void *arg)
 {
     int len;
 

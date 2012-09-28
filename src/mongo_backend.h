@@ -62,6 +62,6 @@ void mongo_conn_send(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_recv(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_close(mongo_conn_t * conn);
 
-void mongo_backend_on_connected(int fd, short ev, void *arg);
+void mongo_backend_on_write(int fd, short ev, void *arg);
 
 #endif
