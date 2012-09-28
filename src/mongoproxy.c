@@ -155,7 +155,10 @@ void on_event(int fd, short what, void *arg)
         }else if (ret == EVENT_HANDLER_ERROR){
         
         }else { 
+            DEBUG("[fd:%d] we will close ", fd);
             close(fd);
+            mongoproxy_session_close(sess);
+            //mongoproxy_session_free(sess); // TODO: I can not fix this, we core on : 2012-09-28 23:23:13.525644 [DEBUG] <62d8c700>(common/buffer.c:39) [func:buffer_free] _buffer_free_ptr: 0x25fd5d0
         }
     }
 
@@ -201,7 +204,6 @@ int mongoproxy_init(){
     cfg->listen_host = strdup(cfg_getstr("MONGOPROXY_BIND", "0.0.0.0"));
     cfg->listen_port = cfg_getint32("MONGOPROXY_PORT", 7111);
     cfg->use_replset = cfg_getint32("MONGOPROXY_USE_REPLSET", 0);
-
     if(strlen(cfg->backend) == 0){
         ERROR("no backend");
         return -1;

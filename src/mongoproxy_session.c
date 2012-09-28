@@ -29,14 +29,16 @@ void mongoproxy_session_free(mongoproxy_session_t * sess){
         sess->buf = NULL;
     }
     
-    free(sess); 
+    free(sess);
     sess = NULL;
 
     return;
 }
 
 int mongoproxy_session_close(mongoproxy_session_t * sess){
-
+    mongo_replset_release_conn(sess->backend_conn);
+    sess->backend_conn = NULL;
+    /*mongoproxy_session_free(sess);*/
     return 0;
 }
 

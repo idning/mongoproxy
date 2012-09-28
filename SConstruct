@@ -3,8 +3,10 @@ import glob, os, subprocess, sys
 
 src = glob.glob('src/*.c') + glob.glob('common/*.c')
 
-LIBS = ['event', 'gcov']
-LIBPATH = [ '/usr/lib', '/usr/local/lib'] #顺序很重要
+#LIBS = ['event', 'gcov', ""]
+#LIBS = ['event', 'tcmalloc']
+LIBS = ['event']
+LIBPATH = ['/usr/lib', '/usr/local/lib'] #顺序很重要
 
 CPPPATH = ['common']
 
