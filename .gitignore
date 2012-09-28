@@ -6,3 +6,4 @@ cscope.out
 log
 tags
 core.*
+*.out
