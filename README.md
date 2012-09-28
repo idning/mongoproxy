@@ -1,4 +1,0 @@
-mongoproxy
-==========
-
-mongodb proxy
