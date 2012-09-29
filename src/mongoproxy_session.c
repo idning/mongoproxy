@@ -15,6 +15,9 @@ mongoproxy_session_t * mongoproxy_session_new(){
         ERROR("error on malloc");
         return NULL;
     }
+    memset(sess, 0, sizeof(*sess));
+
+    DEBUG("proxy_session new : %p", sess);
 
     sess->proxy_state = SESSION_STATE_UNSET;
     sess->buf = buffer_new(MONGOPROXY_DEFAULT_BUF_SIZE);
@@ -22,6 +25,7 @@ mongoproxy_session_t * mongoproxy_session_new(){
 }
 
 void mongoproxy_session_free(mongoproxy_session_t * sess){
+    DEBUG("proxy_session free: %p", sess);
     if (!sess) 
         return;
     if (sess->buf){
