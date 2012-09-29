@@ -62,8 +62,9 @@ int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary)
     }
 
     mongo_conn_t *conn = sess->backend_conn;
-    event_set(&(conn->ev), conn->fd, EV_WRITE, mongo_backend_on_write, sess);
-    event_add(&(conn->ev), NULL);
+
+    event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_write, sess);
+    event_add(conn->ev, NULL);
 
     return 0;
 }

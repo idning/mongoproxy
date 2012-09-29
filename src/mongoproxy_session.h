@@ -8,7 +8,6 @@
 #define _MONGOPROXY_SESSION_H_
 
 #include "mongoproxy.h"
-#include <event.h>
 
 typedef enum mongoproxy_session_state_s {
     SESSION_STATE_UNSET = 0,
@@ -23,7 +22,7 @@ typedef struct mongoproxy_session_s {
     mongoproxy_session_state_t proxy_state;
 
     int fd;
-    struct event ev;
+    struct event *ev;
     char *client_ip;
     int client_port;
 

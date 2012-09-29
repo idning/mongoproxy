@@ -4,8 +4,11 @@
 // 12 is enough
 #define  MONGO_MAX_SERVERS 32
 
+#include <event2/event.h>
+
 #include "mongoproxy.h"
 #include "mongo_backend.h"
+
 
 typedef struct mongo_conn_s mongo_conn_t;
 
@@ -50,7 +53,7 @@ struct mongo_conn_s {
     mongo_conn_t *next;         // in free_conn linked list
     mongo_backend_t *backend;
     int fd;
-    struct event ev;
+    struct event *ev;
     mongo_conn_state_t conn_state;
 };
 

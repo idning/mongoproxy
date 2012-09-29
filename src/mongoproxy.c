@@ -92,12 +92,12 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess)
 
     if (sess->proxy_state == SESSION_STATE_SEND_BACK_TO_CLIENT) {
         DEBUG("[fd:%d] enable write event ", sess->fd);
-        event_set(&(sess->ev), sess->fd, EV_WRITE, on_event, sess);
-        event_add(&(sess->ev), NULL);
+        event_assign(sess->ev, g_server.event_base, sess->fd, EV_WRITE, on_event, sess);
+        event_add(sess->ev, NULL);
     } else if (sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST) {
         DEBUG("[fd:%d] enable read event ", sess->fd);
-        event_set(&(sess->ev), sess->fd, EV_READ, on_event, sess);
-        event_add(&(sess->ev), NULL);
+        event_assign(sess->ev, g_server.event_base, sess->fd, EV_READ, on_event, sess);
+        event_add(sess->ev, NULL);
     }
 
     return 0;
@@ -149,7 +149,7 @@ void on_event(int fd, short what, void *arg)
         DEBUG("[fd:%d] on_read return : %d", fd, ret);
         if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
             mongoproxy_state_machine(sess);
-            /*event_add(&(sess->ev), NULL); */
+            /*event_add(sess->ev, NULL); */
             /*sess->buf->used=0; */
         } else if (ret == EVENT_HANDLER_ERROR) {
 
@@ -167,7 +167,7 @@ void on_event(int fd, short what, void *arg)
             _mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
             sess->buf->used = 0;
             mongoproxy_state_machine(sess);
-            /*event_add(&(sess->ev), NULL); */
+            /*event_add(sess->ev, NULL); */
         } else if (ret == EVENT_HANDLER_ERROR) {
 
         } else {
@@ -196,12 +196,13 @@ void on_accept(int fd, short what, void *arg)
     sess->fd = client_fd;
     _mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
 
-    event_set(&(sess->ev), client_fd, EV_READ, on_event, sess);
-    event_add(&(sess->ev), NULL);
+    sess->ev = event_new(g_server.event_base, client_fd, EV_READ, on_event, sess);
+    event_add(sess->ev, NULL);
 }
 
 int mongoproxy_init()
 {
+    g_server.event_base = event_base_new();
     mongo_replset_t *replset = &(g_server.replset);
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     cfg->backend = strdup(cfg_getstr("MONGOPROXY_BACKEND", ""));
@@ -221,7 +222,7 @@ int mongoproxy_init()
 
 int mongoproxy_mainloop()
 {
-    struct event ev_accept, ev_timer;
+    struct event *ev_accept, *ev_timer;
     struct timeval tm;
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     int listen_fd;
@@ -231,8 +232,8 @@ int mongoproxy_mainloop()
     event_init();               //init libevent
 
     //init ev_accept
-    event_set(&ev_accept, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
-    event_add(&ev_accept, NULL);
+    ev_accept = event_new(g_server.event_base, listen_fd, EV_READ|EV_PERSIST, on_accept, NULL);
+    event_add(ev_accept, NULL);
 
     //init ev_time
 
@@ -240,10 +241,11 @@ int mongoproxy_mainloop()
     tm.tv_sec = cfg->ping_interval/1000;  // second
     tm.tv_usec = cfg->ping_interval%1000;  // u second  TODO. 1000*1000?
 
-    evtimer_set(&ev_timer, on_timer, NULL);
-    evtimer_add(&ev_timer, &tm);
+    ev_timer = event_new(g_server.event_base, -1, EV_PERSIST, on_timer, NULL);
+    event_add(ev_timer, &tm);
 
     /* Start the libevent event loop. */
-    event_dispatch();
+    event_base_dispatch(g_server.event_base);
     return 0;
 }
+

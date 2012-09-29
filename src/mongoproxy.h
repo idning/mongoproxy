@@ -18,7 +18,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include <event.h>
+//#include <event.h>
+#include <event2/event.h>
 
 #include "log.h"
 #include "cfg.h"
@@ -41,6 +42,7 @@ typedef struct mongoproxy_cfg_s {
 typedef struct mongoproxy_server_s {
     mongoproxy_cfg_t cfg;
     mongo_replset_t replset;
+    struct event_base *event_base ;
 } mongoproxy_server_t;
 
 int mongoproxy_init();

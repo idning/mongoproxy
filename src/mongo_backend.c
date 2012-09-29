@@ -73,8 +73,8 @@ void mongo_backend_on_write(int fd, short ev, void *arg)
         mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
         //enable read event
         //
-        event_set(&(conn->ev), fd, EV_READ, mongo_backend_on_read, sess);
-        event_add(&(conn->ev), NULL);
+        event_assign(conn->ev, g_server.event_base, fd, EV_READ, mongo_backend_on_read, sess);
+        event_add(conn->ev, NULL);
     }
 }
 
@@ -105,6 +105,7 @@ mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend)
     conn->backend = backend;
     conn->fd = fd;
     conn->conn_state = MONGO_CONN_STATE_CONNECTING;
+    conn->ev = event_new(g_server.event_base, fd, EV_READ, NULL, NULL);
 
     backend->connection_cnt++;
 
