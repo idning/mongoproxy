@@ -176,6 +176,10 @@ void on_event(int fd, short what, void *arg)
     }
 }
 
+void on_timer(int fd, short what, void *arg)
+{
+    DEBUG("[fd:%d] on timer", fd);
+}
 void on_accept(int fd, short what, void *arg)
 {
     int client_fd;
@@ -204,6 +208,8 @@ int mongoproxy_init()
     cfg->listen_host = strdup(cfg_getstr("MONGOPROXY_BIND", "0.0.0.0"));
     cfg->listen_port = cfg_getint32("MONGOPROXY_PORT", 7111);
     cfg->use_replset = cfg_getint32("MONGOPROXY_USE_REPLSET", 0);
+    cfg->ping_interval = cfg_getint32("MONGOPROXY_PING_INTERVAL", 1000);
+    cfg->check_interval = cfg_getint32("MONGOPROXY_CHECK_INTERVAL", 1000);
 
     if (strlen(cfg->backend) == 0) {
         ERROR("no backend");
@@ -212,17 +218,30 @@ int mongoproxy_init()
     return mongo_replset_init(replset, cfg);
 }
 
+
 int mongoproxy_mainloop()
 {
-    struct event ev_accept;
+    struct event ev_accept, ev_timer;
+    struct timeval tm;
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     int listen_fd;
 
     listen_fd = network_server_socket(cfg->listen_host, cfg->listen_port);
 
     event_init();               //init libevent
+
+    //init ev_accept
     event_set(&ev_accept, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
     event_add(&ev_accept, NULL);
+
+    //init ev_time
+
+    evutil_timerclear(&tm);  
+    tm.tv_sec = cfg->ping_interval/1000;  // second
+    tm.tv_usec = cfg->ping_interval%1000;  // u second  TODO. 1000*1000?
+
+    evtimer_set(&ev_timer, on_timer, NULL);
+    evtimer_add(&ev_timer, &tm);
 
     /* Start the libevent event loop. */
     event_dispatch();
