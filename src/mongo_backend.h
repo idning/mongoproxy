@@ -47,7 +47,7 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replset, int primary);
 
 int mongo_replset_release_conn(mongo_conn_t * conn);
 
-int mongo_replset_init(mongo_replset_t* replset, char * backen);
+int mongo_replset_init(mongo_replset_t* replset, mongoproxy_cfg_t * cfg);
 
 struct mongo_conn_s {
     mongo_conn_t *next;  // in free_conn linked list

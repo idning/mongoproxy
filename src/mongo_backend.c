@@ -23,7 +23,6 @@ char * mongo_conn_state_name(mongo_conn_state_t state){
     return mongo_conn_state_names[(int)state];
 }
 
-
 int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state){
     DEBUG("set mongo_conn state %s => %s", 
             mongo_conn_state_name(conn->conn_state), mongo_conn_state_name(state));
@@ -92,7 +91,6 @@ mongo_backend_t * mongo_backend_new(char * host, int port){
 mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend){
     mongo_conn_t * conn; 
     int fd;
-
 
     fd = network_client_socket(backend->host, backend->port);
     if (fd <= 0){
@@ -188,17 +186,20 @@ char * _parse_next_ip_port(char * s, char *host, int host_len, int * p_port){
     return p1;
 }
 
-int mongo_replset_init(mongo_replset_t* replset, char * backend){
+int mongo_replset_init(mongo_replset_t* replset, mongoproxy_cfg_t * cfg){
     char host[256];
     int port;
-    char * p = backend;
+    char * p = cfg->backend;
 
     while(p && *p){
         p = _parse_next_ip_port(p, host, sizeof(host), &port);
         DEBUG("parse backend get: %s:%d", host, port);
         replset->slaves[replset->slave_cnt] = mongo_backend_new(host, port);
         replset->slave_cnt++;
-
+    }
+    if (( replset->slave_cnt>1 ) && ( !cfg->use_replset )){
+        ERROR("!replset, too many backend!!: %s", cfg->backend);
+        return -1;
     }
     if (replset->slave_cnt == 0){
         ERROR("backend config error");

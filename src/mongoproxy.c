@@ -210,10 +210,8 @@ int mongoproxy_init(){
         return -1;
     }
 
-    return mongo_replset_init(replset, cfg->backend);
+    return mongo_replset_init(replset, cfg);
 }
-
-
 
 int mongoproxy_mainloop(){
     struct event ev_accept;
