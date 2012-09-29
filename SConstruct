@@ -8,10 +8,15 @@ src = glob.glob('src/*.c') + glob.glob('common/*.c')
 LIBS = ['event']
 LIBPATH = ['/usr/lib', '/usr/local/lib'] #顺序很重要
 
+
 CPPPATH = ['common']
 
 CCFLAGS='-Wall -g ' # -pg is for gprof  osd 不能用 -D_FILE_OFFSET_BITS=64
 LINKFLAGS='-g '
+
+if os.sys.platform in ["darwin", "linux2"]:
+    CCFLAGS += " -DMONGO_HAVE_STDINT " 
+
 
 #CCFLAGS='-D_DEBUG -Wall -g -Wno-pointer-sign -pg -fprofile-arcs -ftest-coverage' # -pg is for gprof
 #LINKFLAGS=' -pg '

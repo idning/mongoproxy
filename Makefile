@@ -3,11 +3,10 @@ all:
 
 
 clean:
-	rm bin/*
+	rm -f bin/*
 	find . -name '*.o' | xargs rm -f
 	find . -name '*~' | xargs rm -f
-
-
+	find . -name 'core.*' | xargs rm -f
 
 cs:
 	cscope -Rb

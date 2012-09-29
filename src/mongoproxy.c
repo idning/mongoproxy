@@ -192,7 +192,6 @@ void on_accept(int fd, short what, void *arg)
     sess->fd = client_fd;
     _mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
 
-    /*event_set(sess->ev, client_fd, EV_READ | EV_PERSIST, on_read, sess); */
     event_set(&(sess->ev), client_fd, EV_READ, on_event, sess);
     event_add(&(sess->ev), NULL);
 }
@@ -205,11 +204,11 @@ int mongoproxy_init()
     cfg->listen_host = strdup(cfg_getstr("MONGOPROXY_BIND", "0.0.0.0"));
     cfg->listen_port = cfg_getint32("MONGOPROXY_PORT", 7111);
     cfg->use_replset = cfg_getint32("MONGOPROXY_USE_REPLSET", 0);
+
     if (strlen(cfg->backend) == 0) {
         ERROR("no backend");
         return -1;
     }
-
     return mongo_replset_init(replset, cfg);
 }
 
@@ -227,6 +226,5 @@ int mongoproxy_mainloop()
 
     /* Start the libevent event loop. */
     event_dispatch();
-
     return 0;
 }
