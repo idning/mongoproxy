@@ -7,8 +7,6 @@
 #ifndef _MONGOPROXY_H_
 #define _MONGOPROXY_H_
 
-
-
 #include <unistd.h>
 
 #include <stdio.h>
@@ -28,7 +26,6 @@
 #include "network.h"
 #include "utils.h"
 
-
 typedef struct mongoproxy_cfg_s {
     char *backend;
     char *listen_host;
@@ -39,19 +36,16 @@ typedef struct mongoproxy_cfg_s {
 #include "mongo_backend.h"
 #include "mongoproxy_session.h"
 
-typedef struct mongoproxy_server_s{
+typedef struct mongoproxy_server_s {
     mongoproxy_cfg_t cfg;
     mongo_replset_t replset;
 } mongoproxy_server_t;
 
 int mongoproxy_init();
-int mongoproxy_mainloop(); 
+int mongoproxy_mainloop();
 
 extern mongoproxy_server_t g_server;
 
-
-
 #define MONGOPROXY_DEFAULT_BUF_SIZE (1024*1024*4)
-
 
 #endif

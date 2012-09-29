@@ -9,23 +9,23 @@
 
 /*mongo_replset_t * replset;*/
 
-
 static char mongo_conn_state_names[][50] = {
-    "mongo_conn_state_UNSET", 
-    "mongo_conn_state_CONNECTING", 
-    "mongo_conn_state_CONNECTED", 
-    "mongo_conn_state_SEND_REQUEST", 
-    "mongo_conn_state_RECV_RESPONSE", 
+    "mongo_conn_state_UNSET",
+    "mongo_conn_state_CONNECTING",
+    "mongo_conn_state_CONNECTED",
+    "mongo_conn_state_SEND_REQUEST",
+    "mongo_conn_state_RECV_RESPONSE",
     "mongo_conn_state_CLOSED"
 };
 
-char * mongo_conn_state_name(mongo_conn_state_t state){
+char *mongo_conn_state_name(mongo_conn_state_t state)
+{
     return mongo_conn_state_names[(int)state];
 }
 
-int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state){
-    DEBUG("set mongo_conn state %s => %s", 
-            mongo_conn_state_name(conn->conn_state), mongo_conn_state_name(state));
+int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state)
+{
+    DEBUG("set mongo_conn state %s => %s", mongo_conn_state_name(conn->conn_state), mongo_conn_state_name(state));
     conn->conn_state = state;
     return 0;
 }
@@ -35,12 +35,12 @@ void mongo_backend_on_read(int fd, short ev, void *arg)
     int len;
 
     DEBUG("[fd:%d] on read", fd);
-    mongoproxy_session_t * sess;
+    mongoproxy_session_t *sess;
     sess = (mongoproxy_session_t *) arg;
 
     sess->buf->used = 0;
     len = network_read(fd, sess->buf->ptr, sess->buf->size);
-    if (len < 0 ){
+    if (len < 0) {
         ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));
         return;
     }
@@ -59,17 +59,17 @@ void mongo_backend_on_write(int fd, short ev, void *arg)
 
     DEBUG("[fd:%d] on connected", fd);
 
-    mongoproxy_session_t * sess = ( mongoproxy_session_t * ) arg;
-    mongo_conn_t * conn = sess->backend_conn;
+    mongoproxy_session_t *sess = (mongoproxy_session_t *) arg;
+    mongo_conn_t *conn = sess->backend_conn;
 
     mongo_conn_set_state(conn, MONGO_CONN_STATE_SEND_REQUEST);
 
     len = network_write(fd, sess->buf->ptr, sess->buf->used);
-    if (len < 0 ){
+    if (len < 0) {
         ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
         return;
     }
-    if (len == sess->buf->used){ //all sent
+    if (len == sess->buf->used) {   //all sent
         mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
         //enable read event
         //
@@ -78,27 +78,29 @@ void mongo_backend_on_write(int fd, short ev, void *arg)
     }
 }
 
-mongo_backend_t * mongo_backend_new(char * host, int port){
-    mongo_backend_t * backend = malloc(sizeof(mongo_backend_t));
+mongo_backend_t *mongo_backend_new(char *host, int port)
+{
+    mongo_backend_t *backend = malloc(sizeof(mongo_backend_t));
     memset(backend, 0, sizeof(mongo_backend_t));
 
-    backend -> host = strdup(host);
-    backend -> port = port;
-    backend -> is_primary = 0;
+    backend->host = strdup(host);
+    backend->port = port;
+    backend->is_primary = 0;
     return backend;
 }
 
-mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend){
-    mongo_conn_t * conn; 
+mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend)
+{
+    mongo_conn_t *conn;
     int fd;
 
     fd = network_client_socket(backend->host, backend->port);
-    if (fd <= 0){
+    if (fd <= 0) {
         ERROR("error on get new connection to backend");
         return NULL;
     }
 
-    conn = (mongo_conn_t * ) malloc(sizeof(mongo_conn_t));
+    conn = (mongo_conn_t *) malloc(sizeof(mongo_conn_t));
     conn->next = NULL;
     conn->backend = backend;
     conn->fd = fd;
@@ -106,37 +108,36 @@ mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend){
 
     backend->connection_cnt++;
 
-
     return conn;
 }
 
 /*if no replset, the only backend is primary*/
 
-mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replset, int primary){
-    mongo_backend_t * backend;
+mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary)
+{
+    mongo_backend_t *backend;
     mongo_conn_t *conn;
     int i;
-    
-    if (replset->slave_cnt == 0){
+
+    if (replset->slave_cnt == 0) {
         primary = 1;
         TRACE("no slaves, we will use primary");
     }
 
-    if (primary){
+    if (primary) {
         backend = replset->primary;
-        if (backend->free_conn){ //get a free conn on primary
+        if (backend->free_conn) {   //get a free conn on primary
             conn = backend->free_conn;
             backend->free_conn = conn->next;
             return conn;
-        }else{                  // new conn on primary
+        } else {                // new conn on primary
             return mongo_backend_new_conn(backend);
         }
     }
-
     // find one slave conn
-    for (i=0; i<replset->slave_cnt; i++){
+    for (i = 0; i < replset->slave_cnt; i++) {
         backend = replset->slaves[i];
-        if (backend->free_conn){
+        if (backend->free_conn) {
             conn = backend->free_conn;
             backend->free_conn = conn->next;
             return conn;
@@ -146,15 +147,16 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replset, int primary){
     //not found , we have to new one conn
     //first we find the backend with smallest connection_cnt;
     backend = replset->primary;
-    for (i=0; i<replset->slave_cnt; i++){
-        if(replset->slaves[i]->connection_cnt < backend->connection_cnt) 
+    for (i = 0; i < replset->slave_cnt; i++) {
+        if (replset->slaves[i]->connection_cnt < backend->connection_cnt)
             backend = replset->slaves[i];
     }
     return mongo_backend_new_conn(backend);
 }
 
-int mongo_replset_release_conn(mongo_conn_t * conn){
-    mongo_backend_t * backend = conn->backend;
+int mongo_replset_release_conn(mongo_conn_t * conn)
+{
+    mongo_backend_t *backend = conn->backend;
     conn->next = backend->free_conn;
     backend->free_conn = conn;
     return 0;
@@ -167,52 +169,53 @@ int mongo_replset_release_conn(mongo_conn_t * conn){
  * return end possition
  * TODO: need unit test
  * */
-char * _parse_next_ip_port(char * s, char *host, int host_len, int * p_port){
-    char * p1 = NULL;
-    char * p2 = NULL;
+char *_parse_next_ip_port(char *s, char *host, int host_len, int *p_port)
+{
+    char *p1 = NULL;
+    char *p2 = NULL;
     p1 = strchr(s, ',');
     p2 = strchr(s, ':');
 
-    strncpy(host, s, _min(p2-s, host_len));
-    if(!p2){
+    strncpy(host, s, _min(p2 - s, host_len));
+    if (!p2) {
         return NULL;
     }
-    if (p2-s >=host_len){
+    if (p2 - s >= host_len) {
         return NULL;
     }
-    host[p2-s] = '\0';
+    host[p2 - s] = '\0';
 
-    *p_port = atoi(p2+1);
+    *p_port = atoi(p2 + 1);
     return p1;
 }
 
-int mongo_replset_init(mongo_replset_t* replset, mongoproxy_cfg_t * cfg){
+int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
+{
     char host[256];
     int port;
-    char * p = cfg->backend;
+    char *p = cfg->backend;
 
-    while(p && *p){
+    while (p && *p) {
         p = _parse_next_ip_port(p, host, sizeof(host), &port);
         DEBUG("parse backend get: %s:%d", host, port);
         replset->slaves[replset->slave_cnt] = mongo_backend_new(host, port);
         replset->slave_cnt++;
     }
-    if (( replset->slave_cnt>1 ) && ( !cfg->use_replset )){
+    if ((replset->slave_cnt > 1) && (!cfg->use_replset)) {
         ERROR("!replset, too many backend!!: %s", cfg->backend);
         return -1;
     }
-    if (replset->slave_cnt == 0){
+    if (replset->slave_cnt == 0) {
         ERROR("backend config error");
         return -1;
     }
-    replset->primary = replset->slaves[replset->slave_cnt-1];
-    replset->slave_cnt --;
+    replset->primary = replset->slaves[replset->slave_cnt - 1];
+    replset->slave_cnt--;
     return 0;
 }
 
-int mongo_replset_set_primary(char * host, int port){
+int mongo_replset_set_primary(char *host, int port)
+{
     return 0;
 
 }
-
-

@@ -68,7 +68,7 @@ int log_init(char *logfile)
 
 int log_print(int level, char *fmt, ...)
 {
-    /*fprintf(stderr, "%d . %d", level, log_level);*/
+    /*fprintf(stderr, "%d . %d", level, log_level); */
     if (level < log_level)
         return 0;
     char stmp[10240];
@@ -95,8 +95,6 @@ int log_set_level(int level)
     DEBUG("set log level to :%d", level);
     int old_level = log_level;
     log_level = level;
-    /*DEBUG("set log level to :%d", level);*/
+    /*DEBUG("set log level to :%d", level); */
     return old_level;
 }
-
-

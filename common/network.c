@@ -79,13 +79,12 @@ int network_close(int s)
     return close(s);
 }
 
-
 /*
  * 返回client_fd
  * client_ip
  * client_port
  * */
-int network_accept(int s, char * client_ip, int client_ip_len , int *pport)
+int network_accept(int s, char *client_ip, int client_ip_len, int *pport)
 {
     int client_fd;
     struct sockaddr_in client_sa;
@@ -99,11 +98,11 @@ int network_accept(int s, char * client_ip, int client_ip_len , int *pport)
 
     network_nonblock(client_fd);
 
-    if (client_ip && client_ip_len){
-        strncpy(client_ip,inet_ntoa(client_sa.sin_addr),  client_ip_len);
+    if (client_ip && client_ip_len) {
+        strncpy(client_ip, inet_ntoa(client_sa.sin_addr), client_ip_len);
     }
-    if (pport){
-        *pport = (int) ntohs(client_sa.sin_port);
+    if (pport) {
+        *pport = (int)ntohs(client_sa.sin_port);
     }
     return client_fd;
 }
@@ -115,9 +114,9 @@ int32_t network_read(int s, void *buff, uint32_t len)
 
     while (recvd < len) {
         i = read(s, ((uint8_t *) buff) + recvd, len - recvd);
-        if (i <= 0){
+        if (i <= 0) {
             DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
-            if (errno == EAGAIN) { // we will return success
+            if (errno == EAGAIN) {  // we will return success
                 break;
             }
             ERROR("oops, read from [fd:%d] failed: [errno:%d(%s)]", s, errno, strerror(errno));

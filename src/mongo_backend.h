@@ -15,23 +15,21 @@ typedef struct mongo_backend_s {
     int is_primary;
     int last_ping;
 
-    int connection_cnt;             // used for load balance
-    mongo_conn_t * free_conn;
+    int connection_cnt;         // used for load balance
+    mongo_conn_t *free_conn;
 
 } mongo_backend_t;
 
-
 typedef enum mongo_conn_state_s {
-    MONGO_CONN_STATE_UNSET = 0, 
-    MONGO_CONN_STATE_CONNECTING, 
-    MONGO_CONN_STATE_CONNECTED, 
-    MONGO_CONN_STATE_SEND_REQUEST, 
-    MONGO_CONN_STATE_RECV_RESPONSE, 
+    MONGO_CONN_STATE_UNSET = 0,
+    MONGO_CONN_STATE_CONNECTING,
+    MONGO_CONN_STATE_CONNECTED,
+    MONGO_CONN_STATE_SEND_REQUEST,
+    MONGO_CONN_STATE_RECV_RESPONSE,
     MONGO_CONN_STATE_CLOSED
-}mongo_conn_state_t;
+} mongo_conn_state_t;
 
-char * mongo_conn_state_name(mongo_conn_state_t state);
-
+char *mongo_conn_state_name(mongo_conn_state_t state);
 
 typedef struct mongo_replset_s {
     int slave_cnt;
@@ -39,18 +37,17 @@ typedef struct mongo_replset_s {
     mongo_backend_t *primary;
 } mongo_replset_t;
 
-
 mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend);
 
 //void mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg);
-mongo_conn_t *mongo_replset_get_conn(mongo_replset_t* replset, int primary);
+mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary);
 
 int mongo_replset_release_conn(mongo_conn_t * conn);
 
-int mongo_replset_init(mongo_replset_t* replset, mongoproxy_cfg_t * cfg);
+int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg);
 
 struct mongo_conn_s {
-    mongo_conn_t *next;  // in free_conn linked list
+    mongo_conn_t *next;         // in free_conn linked list
     mongo_backend_t *backend;
     int fd;
     struct event ev;

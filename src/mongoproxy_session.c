@@ -4,14 +4,14 @@
  * date   : 2012-09-24 00:54:30
  */
 
-
 #include "mongoproxy.h"
 
-mongoproxy_session_t * mongoproxy_session_new(){
-    mongoproxy_session_t * sess;
+mongoproxy_session_t *mongoproxy_session_new()
+{
+    mongoproxy_session_t *sess;
 
     sess = malloc(sizeof(*sess));
-    if (!sess){
+    if (!sess) {
         ERROR("error on malloc");
         return NULL;
     }
@@ -24,45 +24,46 @@ mongoproxy_session_t * mongoproxy_session_new(){
     return sess;
 }
 
-void mongoproxy_session_free(mongoproxy_session_t * sess){
+void mongoproxy_session_free(mongoproxy_session_t * sess)
+{
     DEBUG("proxy_session free: %p", sess);
-    if (!sess) 
+    if (!sess)
         return;
-    if (sess->buf){
+    if (sess->buf) {
         buffer_free(sess->buf);
         sess->buf = NULL;
     }
-    
+
     free(sess);
     sess = NULL;
 
     return;
 }
 
-int mongoproxy_session_close(mongoproxy_session_t * sess){
+int mongoproxy_session_close(mongoproxy_session_t * sess)
+{
     mongo_replset_release_conn(sess->backend_conn);
     sess->backend_conn = NULL;
-    /*mongoproxy_session_free(sess);*/
+    /*mongoproxy_session_free(sess); */
     return 0;
 }
 
-int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary){
-    if (sess->backend_conn){
+int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary)
+{
+    if (sess->backend_conn) {
         mongo_replset_release_conn(sess->backend_conn);
         sess->backend_conn = NULL;
     }
-    mongo_replset_t * replset = &(g_server.replset);
+    mongo_replset_t *replset = &(g_server.replset);
     sess->backend_conn = mongo_replset_get_conn(replset, primary);
-    if (!sess->backend_conn){
+    if (!sess->backend_conn) {
         ERROR("get no connection");
         return -1;
     }
 
-
-    mongo_conn_t * conn = sess->backend_conn; 
+    mongo_conn_t *conn = sess->backend_conn;
     event_set(&(conn->ev), conn->fd, EV_WRITE, mongo_backend_on_write, sess);
     event_add(&(conn->ev), NULL);
 
     return 0;
 }
-

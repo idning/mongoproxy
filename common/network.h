@@ -24,7 +24,7 @@ int network_client_socket(char *host, int port);
 
 int network_close(int s);
 
-int network_accept(int s, char * client_ip, int client_ip_len , int *pport);
+int network_accept(int s, char *client_ip, int client_ip_len, int *pport);
 
 int network_read(int s, void *buff, uint32_t leng);
 int network_write(int s, const void *buff, uint32_t leng);

@@ -16,25 +16,23 @@ typedef enum mongoproxy_session_state_s {
     SESSION_STATE_PROCESSING,
     SESSION_STATE_SEND_BACK_TO_CLIENT,
     SESSION_STATE_FINISH
-}mongoproxy_session_state_t;
+} mongoproxy_session_state_t;
 
-
-typedef struct mongoproxy_session_s{
-    mongo_conn_t *backend_conn; 
+typedef struct mongoproxy_session_s {
+    mongo_conn_t *backend_conn;
     mongoproxy_session_state_t proxy_state;
 
     int fd;
     struct event ev;
-    char * client_ip;
+    char *client_ip;
     int client_port;
 
     buffer_t *buf;
 } mongoproxy_session_t;
 
-mongoproxy_session_t * mongoproxy_session_new();
-void mongoproxy_session_free(mongoproxy_session_t * );
+mongoproxy_session_t *mongoproxy_session_new();
+void mongoproxy_session_free(mongoproxy_session_t *);
 int mongoproxy_session_close(mongoproxy_session_t * sess);
 int mongoproxy_session_force_primary(mongoproxy_session_t * sess);
 
 #endif
-

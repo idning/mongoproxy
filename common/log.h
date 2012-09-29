@@ -53,4 +53,3 @@ int log_set_level(int level);
     (log_print(LOG_DEUBG,  "(%s:%d) [func:%s] " fmt, REMOVE_PATH(__FILE__), __LINE__, __func__,  ## __VA_ARGS__), 0)
 
 #endif
-

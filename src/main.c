@@ -4,17 +4,15 @@
  * date   : 2012-01-13 16:10:27
  */
 
-
 #include "mongoproxy.h"
 
 #define __MONGOPROXY_VERSION__ "0.0.1"
 
-
 int onexit()
 {
-    /*WARNING("is going to exit!");*/
+    /*WARNING("is going to exit!"); */
     fprintf(stderr, "is going to exit!");
-    return 0 ;
+    return 0;
 }
 
 void sig_handler(int signum)
@@ -92,11 +90,10 @@ int init(int argc, char **argv)
     return 0;
 }
 
-
 int main(int argc, char **argv)
 {
     init(argc, argv);
-    if (mongoproxy_init()){
+    if (mongoproxy_init()) {
         ERROR("error on mongoproxy_init");
         exit(0);
     }
