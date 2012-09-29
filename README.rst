@@ -8,7 +8,9 @@ why:
 what's better: 
 
 - single process, less ping to backend mongod
+- avoid blocking ping before querys.
 - one client => one server conn
+
 
 
 design:
