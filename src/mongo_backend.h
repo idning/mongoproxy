@@ -9,7 +9,6 @@
 #include "mongoproxy.h"
 #include "mongo_backend.h"
 
-
 typedef struct mongo_conn_s mongo_conn_t;
 
 typedef struct mongo_backend_s {

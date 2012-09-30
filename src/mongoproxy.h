@@ -32,8 +32,8 @@ typedef struct mongoproxy_cfg_s {
     char *listen_host;
     int listen_port;
     int use_replset;
-    int ping_interval;      //ping interval 
-    int check_interval;     //is_master interval
+    int ping_interval;          //ping interval 
+    int check_interval;         //is_master interval
 } mongoproxy_cfg_t;
 
 #include "mongo_backend.h"
@@ -42,7 +42,7 @@ typedef struct mongoproxy_cfg_s {
 typedef struct mongoproxy_server_s {
     mongoproxy_cfg_t cfg;
     mongo_replset_t replset;
-    struct event_base *event_base ;
+    struct event_base *event_base;
 } mongoproxy_server_t;
 
 int mongoproxy_init();

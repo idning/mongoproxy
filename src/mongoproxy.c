@@ -180,6 +180,7 @@ void on_timer(int fd, short what, void *arg)
 {
     DEBUG("[fd:%d] on timer", fd);
 }
+
 void on_accept(int fd, short what, void *arg)
 {
     int client_fd;
@@ -219,7 +220,6 @@ int mongoproxy_init()
     return mongo_replset_init(replset, cfg);
 }
 
-
 int mongoproxy_mainloop()
 {
     struct event *ev_accept, *ev_timer;
@@ -229,18 +229,17 @@ int mongoproxy_mainloop()
 
     listen_fd = network_server_socket(cfg->listen_host, cfg->listen_port);
 
-    event_init();               //init libevent
+    //init libevent
+    event_init();
 
     //init ev_accept
-    ev_accept = event_new(g_server.event_base, listen_fd, EV_READ|EV_PERSIST, on_accept, NULL);
+    ev_accept = event_new(g_server.event_base, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
     event_add(ev_accept, NULL);
 
     //init ev_time
-
-    evutil_timerclear(&tm);  
-    tm.tv_sec = cfg->ping_interval/1000;  // second
-    tm.tv_usec = cfg->ping_interval%1000;  // u second  TODO. 1000*1000?
-
+    evutil_timerclear(&tm);
+    tm.tv_sec = cfg->ping_interval / 1000;  // second
+    tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?
     ev_timer = event_new(g_server.event_base, -1, EV_PERSIST, on_timer, NULL);
     event_add(ev_timer, &tm);
 
@@ -248,4 +247,3 @@ int mongoproxy_mainloop()
     event_base_dispatch(g_server.event_base);
     return 0;
 }
-
