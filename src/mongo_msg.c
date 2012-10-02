@@ -79,7 +79,7 @@ int mongomsg_decode_ismaster(buffer_t * buf, int *ismaster, buffer_t * hosts, bu
     const char *host_string;
 
     bson response;
-    bson_init_data(&response, buf->ptr + sizeof(mongomsg_header_t) + sizeof(int)*5);
+    bson_init_data(&response, buf->ptr + MONGOMSG_QUERY_HEADER_SIZE);
 
 
     buffer_prepare_copy(hosts, sizeof("255.255.255.255:65536") * 15);

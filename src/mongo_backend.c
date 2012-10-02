@@ -183,6 +183,7 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary)
             return mongo_backend_new_conn(backend);
         }
     }
+
     // find one slave conn
     for (i = 0; i < replset->slave_cnt; i++) {
         backend = replset->slaves[i];
@@ -278,7 +279,7 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
     char host[256];
     int port;
     char *p = hosts->ptr;
-    int i;
+    int i, j;
 
     while (p && *p) {
         p = _parse_next_ip_port(p, host, sizeof(host), &port);
@@ -287,6 +288,7 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
             replset->slaves[replset->slave_cnt] = mongo_backend_new(host, port);
             replset->slave_cnt++;
         }
+        DEBUG("[slave_cnt:%d]", replset->slave_cnt);
     }
 
     //check if primary changed
@@ -301,7 +303,23 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
     }
 
     if (replset->primary && !mongo_backend_is_equal(host, port, replset->primary->host, replset->primary->port)){ //we got a new primary
-        //TODO: do something.
+
+        replset->slaves[replset->slave_cnt] = replset->primary;
+        replset->slave_cnt++;
+
+        for (i=0; i< replset->slave_cnt; i++){
+            if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)){
+                replset->primary = replset->slaves[i];
+            }
+        }
+        j = 0;
+        for (i=0; i< replset->slave_cnt; i++){
+            if (replset->primary != replset->slaves[i]){
+                replset->slaves[j++] = replset->slaves[i];
+            }
+        }
+        replset->slave_cnt = j;
+        TRACE("update set [slave_cnt:%d]", replset->slave_cnt);
     }
 }
 

@@ -18,12 +18,17 @@ design:
 - one backend is a mongd
 - backends became a replset
 
+TODO: 
 
-实现: 
-既要主动连后端 发请求，又要有proxy 型.
+- request_id
+- dump request & response
+- handler slave_ok
+
+
 
 Reference:
 
 http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPQUERY
 https://github.com/interactive-matter/bson-c  (MongoDB C Driver)
 https://github.com/mongodb/mongo-c-driver/tree/master/src (another MongoDB c driver, offical version)
+

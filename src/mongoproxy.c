@@ -88,18 +88,71 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
     return 0;
 }
 
+const char * _mongo_proxy_op_code2str(int op)
+{
+    switch (op)
+    {
+    case OP_REPLY:
+        return "OP_REPLY";
+    case OP_MSG:
+        return "OP_MSG";
+    case OP_GET_BY_OID:
+        return "OP_GET_BY_OID";
+    case OP_QUERY:
+        return "OP_QUERY";
+    case OP_GET_MORE:
+        return "OP_GET_MORE";
+    case OP_KILL_CURSORS:
+        return "OP_KILL_CURSORS";
+    case OP_UPDATE:
+        return "OP_UPDATE";
+    case OP_INSERT:
+        return "OP_INSERT";
+    case OP_DELETE:
+        return "OP_DELETE";
+    default:
+        return "none";
+    }
+}
+
+/*
+if need send to primary, return 1
+*/
+static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess){
+
+    mongomsg_header_t * header = (mongomsg_header_t *)sess->buf->ptr;
+    TRACE("[opcode: %s]", _mongo_proxy_op_code2str(header->op_code));
+    if (header->op_code == OP_UPDATE 
+            || header->op_code == OP_DELETE
+            || header->op_code == OP_INSERT){
+        return 1;
+    }
+
+    return 0;
+}
+
+
+
 int mongoproxy_state_machine(mongoproxy_session_t * sess)
 {
     DEBUG("in state machine [sess->proxy_state:%s]", mongoproxy_session_state_name(sess->proxy_state));
 
     mongo_replset_t *replset;
+    int primary = 0;
 
     replset = &(g_server.replset);
 
     if (sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST) {
         if (_mongoproxy_read_done(sess)) {
             mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
-            mongoproxy_session_select_backend(sess, 0);
+            primary = _mongoproxy_query_should_sendto_primary(sess);
+            mongoproxy_session_select_backend(sess, primary);
+
+            mongo_conn_t *conn = sess->backend_conn;
+            event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_write, sess);
+            event_add(conn->ev, NULL);
+
+
             /*return 0; */
         }
     }
@@ -257,8 +310,6 @@ int mongoproxy_init()
         ERROR("no backend");
         return -1;
     }
-
-
 
     return mongo_replset_init(replset, cfg);
 }

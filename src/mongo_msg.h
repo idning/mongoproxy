@@ -19,6 +19,9 @@ typedef struct mongomsg_header_s {
     int32_t op_code;            // request type - see table below
 } mongomsg_header_t;
 
+
+#define MONGOMSG_QUERY_HEADER_SIZE (9*sizeof(int))
+
 // db ops
 #define OP_REPLY 1
 #define OP_MSG 1000

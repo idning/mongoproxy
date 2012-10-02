@@ -50,21 +50,25 @@ int mongoproxy_session_close(mongoproxy_session_t * sess)
 
 int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary)
 {
-    if (sess->backend_conn) {
-        mongo_replset_release_conn(sess->backend_conn);
-        sess->backend_conn = NULL;
-    }
     mongo_replset_t *replset = &(g_server.replset);
+    if (sess->backend_conn){ //already got a connection
+        if (sess->backend_conn->backend == replset->primary) {
+            return 0;
+        } else { //my conn is not to primary
+            if (primary){
+                mongo_replset_release_conn(sess->backend_conn);
+                sess->backend_conn = NULL;
+            }
+        }
+    }
+    DEBUG("we will use a new backend_conn");
+
     sess->backend_conn = mongo_replset_get_conn(replset, primary);
     if (!sess->backend_conn) {
         ERROR("get no connection");
         return -1;
     }
 
-    mongo_conn_t *conn = sess->backend_conn;
-
-    event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_write, sess);
-    event_add(conn->ev, NULL);
 
     return 0;
 }
