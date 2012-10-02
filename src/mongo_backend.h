@@ -14,6 +14,7 @@ typedef struct mongo_conn_s mongo_conn_t;
 typedef struct mongo_backend_s {
     char *host;
     int port;
+    buffer_t * host_port;
     int is_primary;
     int last_ping;
 
@@ -32,6 +33,8 @@ typedef enum mongo_conn_state_s {
 } mongo_conn_state_t;
 
 char *mongo_conn_state_name(mongo_conn_state_t state);
+
+int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state);
 
 typedef struct mongo_replset_s {
     int slave_cnt;

@@ -43,12 +43,17 @@ typedef struct mongoproxy_server_s {
     mongoproxy_cfg_t cfg;
     mongo_replset_t replset;
     struct event_base *event_base;
+    buffer_t msg_ismaster;
+    buffer_t msg_ping;
+
 } mongoproxy_server_t;
 
 int mongoproxy_init();
 int mongoproxy_mainloop();
 
 extern mongoproxy_server_t g_server;
+
+void mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state);
 
 #define MONGOPROXY_DEFAULT_BUF_SIZE (1024*1024*4)
 

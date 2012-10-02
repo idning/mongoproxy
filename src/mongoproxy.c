@@ -46,11 +46,24 @@ char *mongoproxy_session_state_name(mongoproxy_session_state_t state)
     return mongoproxy_session_state_names[(int)state];
 }
 
-static void _mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state)
+void mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state)
 {
     DEBUG("set mongo_proxy_state %s => %s",
           mongoproxy_session_state_name(sess->proxy_state), mongoproxy_session_state_name(state));
     sess->proxy_state = state;
+}
+
+int mongo_backend_handler_ismaster(mongoproxy_session_t * sess)
+{
+    int ismaster;
+    buffer_t * hosts = buffer_new(1024);
+    buffer_t * primary = buffer_new(1024);
+    int ret; 
+    ret = mongomsg_decode_ismaster(sess->buf, &ismaster, hosts, primary);
+    TRACE("we got ismaster response: [ismaster:%d] [hosts:%s] [primary:%s]", ismaster, hosts->ptr, primary->ptr);
+    mongo_replset_update(&(g_server.replset), hosts, primary);
+
+    return 0;
 }
 
 /*
@@ -64,9 +77,13 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
 
     if (conn->conn_state == MONGO_CONN_STATE_RECV_RESPONSE) {
         if (_mongoproxy_read_done(sess)) {
-            _mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
+            mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
+            if (sess->fd){
+                mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
+            } else {
+                mongo_backend_handler_ismaster(sess);
+            }
         }
-        mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
     }
     return 0;
 }
@@ -81,7 +98,7 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess)
 
     if (sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST) {
         if (_mongoproxy_read_done(sess)) {
-            _mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
+            mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
             mongoproxy_session_select_backend(sess, 0);
             /*return 0; */
         }
@@ -164,7 +181,7 @@ void on_event(int fd, short what, void *arg)
     if (what & EV_WRITE) {
         int ret = on_write(fd, sess);
         if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
-            _mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
+            mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
             sess->buf->used = 0;
             mongoproxy_state_machine(sess);
             /*event_add(sess->ev, NULL); */
@@ -179,6 +196,21 @@ void on_event(int fd, short what, void *arg)
 void on_timer(int fd, short what, void *arg)
 {
     DEBUG("[fd:%d] on timer", fd);
+    mongo_replset_t *replset = &(g_server.replset);
+    mongo_backend_t * backend;
+    int i;
+
+    char buf[1024];
+
+    backend = replset->primary;
+    TRACE("primary [%s:%d=>%d]", 
+            backend->host, backend->port,backend->connection_cnt );
+
+    for (i=0; i< replset->slave_cnt; i++){
+        backend = replset->slaves[i];
+        TRACE("slaves [%s:%d=>%d]", 
+                backend->host, backend->port,backend->connection_cnt );
+    }
 }
 
 void on_accept(int fd, short what, void *arg)
@@ -195,7 +227,7 @@ void on_accept(int fd, short what, void *arg)
     DEBUG("accept new fd [fd:%d]", client_fd);
     sess = mongoproxy_session_new();
     sess->fd = client_fd;
-    _mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
+    mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
 
     sess->ev = event_new(g_server.event_base, client_fd, EV_READ, on_event, sess);
     event_add(sess->ev, NULL);
@@ -203,7 +235,15 @@ void on_accept(int fd, short what, void *arg)
 
 int mongoproxy_init()
 {
+    //init libevent
+    event_init();
     g_server.event_base = event_base_new();
+
+    //init msg
+    mongomsg_encode_ismaster(&(g_server.msg_ismaster));
+    mongomsg_encode_ping(&(g_server.msg_ping));
+
+
     mongo_replset_t *replset = &(g_server.replset);
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     cfg->backend = strdup(cfg_getstr("MONGOPROXY_BACKEND", ""));
@@ -217,6 +257,9 @@ int mongoproxy_init()
         ERROR("no backend");
         return -1;
     }
+
+
+
     return mongo_replset_init(replset, cfg);
 }
 
@@ -229,14 +272,11 @@ int mongoproxy_mainloop()
 
     listen_fd = network_server_socket(cfg->listen_host, cfg->listen_port);
 
-    //init libevent
-    event_init();
-
     //init ev_accept
     ev_accept = event_new(g_server.event_base, listen_fd, EV_READ | EV_PERSIST, on_accept, NULL);
     event_add(ev_accept, NULL);
 
-    //init ev_time
+    //init ev_timer
     evutil_timerclear(&tm);
     tm.tv_sec = cfg->ping_interval / 1000;  // second
     tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?

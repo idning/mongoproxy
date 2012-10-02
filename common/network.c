@@ -41,7 +41,7 @@ int network_server_socket(char *host, int port)
         return -1;
     }
 
-    NOTICE("listen on %s:%d", host, port);
+    TRACE("listen on %s:%d", host, port);
     return s;
 }
 

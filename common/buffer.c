@@ -48,19 +48,19 @@ void buffer_free(buffer_t * b)
 
 #define BUFFER_MAX_REUSE_SIZE  (32 * 1024)
 
-/*void buffer_reset(buffer_t *b) {*/
-    /*if (!b) return; */
+void buffer_reset(buffer_t *b) {
+    if (!b) return;
 
-    /*[> limit don't reuse buffer_t larger than ... bytes <] */
-    /*if (b->size > BUFFER_MAX_REUSE_SIZE) { */
-        /*DEBUG("_buffer_free_ptr: %p", b->ptr); */
-        /*free(b->ptr); */
-        /*b->ptr = NULL; */
-        /*b->size = 0; */
-    /*} */
+    /* limit don't reuse buffer_t larger than ... bytes */
+    if (b->size > BUFFER_MAX_REUSE_SIZE) {
+        DEBUG("_buffer_free_ptr: %p", b->ptr);
+        free(b->ptr);
+        b->ptr = NULL;
+        b->size = 0;
+    }
 
-    /*b->used = 0; */
-/*}*/
+    b->used = 0;
+}
 
 #define BUFFER_PIECE_SIZE 64
 
@@ -123,7 +123,7 @@ int buffer_prepare_append(buffer_t * b, size_t size)
     return 0;
 }
 
-int buffer_append_memory(buffer_t * b, const char *s, size_t s_len)
+int buffer_append_memory(buffer_t * b, const void *s, size_t s_len)
 {
     if (!s || !b)
         return -1;
@@ -137,7 +137,46 @@ int buffer_append_memory(buffer_t * b, const char *s, size_t s_len)
     return 0;
 }
 
-int buffer_copy_memory(buffer_t * b, const char *s, size_t s_len)
+int buffer_append_raw_int32(buffer_t * b, int32_t arg){
+    return buffer_append_memory(b, &arg, 4);
+}
+
+int buffer_append_raw_int64(buffer_t * b, int64_t arg){
+    return buffer_append_memory(b, &arg, 8);
+}
+
+int buffer_append_int32(buffer_t * b, int32_t arg){
+    return buffer_append_printf(b, "%d", arg);
+}
+
+/*
+will NOT add trailing '\0'
+*/
+int buffer_append_printf(buffer_t * b, char *fmt, ...)
+{
+    va_list ap;
+    int len;
+
+    if (!b)
+        return -1;
+
+    va_start(ap, fmt);
+    len = vsnprintf(NULL, 0, fmt, ap);
+    va_end(ap);
+
+    va_start(ap, fmt);
+    buffer_prepare_append(b, len);
+    vsprintf(b->ptr+b->used, fmt, ap);
+    va_end(ap);
+    b->used += len;
+    return 0;
+}
+
+int buffer_append_trailing_null(buffer_t * b){
+    return buffer_append_memory(b, "\0", 1);
+}
+
+int buffer_copy_memory(buffer_t * b, const void *s, size_t s_len)
 {
     if (!s || !b)
         return -1;

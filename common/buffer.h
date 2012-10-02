@@ -21,10 +21,17 @@ void buffer_reset(buffer_t * b);
 int buffer_prepare_copy(buffer_t * b, size_t size);
 int buffer_prepare_append(buffer_t * b, size_t size);
 
-int buffer_append_memory(buffer_t * b, const char *s, size_t s_len);
-int buffer_copy_memory(buffer_t * b, const char *s, size_t s_len);
+int buffer_append_memory(buffer_t * b, const void *s, size_t s_len);
+int buffer_copy_memory(buffer_t * b, const void *s, size_t s_len);
 
 int buffer_is_empty(buffer_t * b);
 int buffer_is_equal(buffer_t * a, buffer_t * b);
 
+
+
+int buffer_append_raw_int32(buffer_t * b, int32_t arg);
+int buffer_append_raw_int64(buffer_t * b, int64_t arg);
+
+int buffer_append_printf(buffer_t * b, char *fmt, ...);
+int buffer_append_trailing_null(buffer_t * b);
 #endif

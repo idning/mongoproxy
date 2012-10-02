@@ -76,7 +76,7 @@ int init(int argc, char **argv)
     // set log
     char *logfile = cfg_getstr("MONGOPROXY_LOG_FILE", "log/mongoproxy.log");
     log_init(logfile);
-    NOTICE("server start");
+    TRACE("server start");
 
     int log_level = cfg_getint32("MONGOPROXY_LOG_LEVEL", 0);
     log_set_level(log_level);
