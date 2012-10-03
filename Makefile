@@ -4,6 +4,7 @@ all:
 
 clean:
 	rm -f bin/*
+	rm -f log/*
 	find . -name '*.o' | xargs rm -f
 	find . -name '*~' | xargs rm -f
 	find . -name 'core.*' | xargs rm -f
