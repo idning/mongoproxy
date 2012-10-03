@@ -196,7 +196,7 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary)
 
     //not found , we have to new one conn
     //first we find the backend with smallest connection_cnt;
-    backend = replset->primary;
+    backend = replset->slaves[0];
     for (i = 0; i < replset->slave_cnt; i++) {
         if (replset->slaves[i]->connection_cnt < backend->connection_cnt)
             backend = replset->slaves[i];

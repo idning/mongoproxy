@@ -58,17 +58,18 @@ int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary)
             if (primary){
                 mongo_replset_release_conn(sess->backend_conn);
                 sess->backend_conn = NULL;
+            }else{
+                return 0; 
             }
         }
     }
-    DEBUG("we will use a new backend_conn");
+    DEBUG("we will use a new backend_conn, [primary:%d]", primary);
 
     sess->backend_conn = mongo_replset_get_conn(replset, primary);
     if (!sess->backend_conn) {
         ERROR("get no connection");
         return -1;
     }
-
 
     return 0;
 }

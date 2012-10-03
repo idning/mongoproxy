@@ -4,6 +4,7 @@ why:
 
 - mongo-php-drive is too heavy to create a connection
 - too many php workers, too many connections
+- client do not to know it's a replset(no slaveok for client)
 
 what's better: 
 

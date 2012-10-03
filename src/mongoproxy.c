@@ -120,12 +120,24 @@ if need send to primary, return 1
 */
 static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess){
 
+    mongoproxy_cfg_t *cfg = &(g_server.cfg);
+    int *flag;
+
     mongomsg_header_t * header = (mongomsg_header_t *)sess->buf->ptr;
     TRACE("[opcode: %s]", _mongo_proxy_op_code2str(header->op_code));
     if (header->op_code == OP_UPDATE 
             || header->op_code == OP_DELETE
             || header->op_code == OP_INSERT){
         return 1;
+    }
+
+
+    if (cfg->slaveok){ //set "slaveOk" flag
+        DEBUG("set 'slaveOk' flag");
+        flag = (int*)((void*)sess->buf->ptr + sizeof(mongomsg_header_t));
+        DEBUG("[flag:%x]", *flag);
+        *flag =(*flag) | (1<<2);
+        DEBUG("[flag:%x]", *flag);
     }
 
     return 0;
@@ -303,6 +315,8 @@ int mongoproxy_init()
     cfg->listen_host = strdup(cfg_getstr("MONGOPROXY_BIND", "0.0.0.0"));
     cfg->listen_port = cfg_getint32("MONGOPROXY_PORT", 7111);
     cfg->use_replset = cfg_getint32("MONGOPROXY_USE_REPLSET", 0);
+    cfg->slaveok = cfg_getint32("MONGOPROXY_REPLSET_ENABLE_SLAVE", 1);
+
     cfg->ping_interval = cfg_getint32("MONGOPROXY_PING_INTERVAL", 1000);
     cfg->check_interval = cfg_getint32("MONGOPROXY_CHECK_INTERVAL", 1000);
 
