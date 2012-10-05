@@ -22,7 +22,10 @@ TODO:
 - print request_id into log
 - dump request & response
 - handler slave_ok *done*
+- handler primary change
 - client idle
+- server side timeout..
+- close serverside conn when too many idle conns(easy to do).
 
 config: conf/mongoproxy.cfg ::
 
@@ -44,13 +47,13 @@ usage::
     ning@ning-laptop ~/idning/blog_and_notes$ mongo --port 9527 
     MongoDB shell version: 2.0.6
     connecting to: 127.0.0.1:9527/test
-    SECONDARY> db.xxx.find()
+    SECONDARY> db.foo.find()
     { "_id" : ObjectId("506afa5300ee31bfddede23d"), "x" : 3 }
     { "_id" : ObjectId("506afa7a5428e4e2f65ce8fb"), "x" : 3 }
     { "_id" : ObjectId("506b30adf6f0dc3792367efe"), "3" : 5 }
     { "_id" : ObjectId("506b9f4cc50ba0162da625bf"), "x" : 3 }
-    SECONDARY> db.xxx.insert({x:9})
-    PRIMARY> db.xxx.find()
+    SECONDARY> db.foo.insert({x:9})
+    PRIMARY> db.foo.find()
     { "_id" : ObjectId("506afa5300ee31bfddede23d"), "x" : 3 }
     { "_id" : ObjectId("506afa7a5428e4e2f65ce8fb"), "x" : 3 }
     { "_id" : ObjectId("506b30adf6f0dc3792367efe"), "3" : 5 }

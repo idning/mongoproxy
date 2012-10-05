@@ -30,48 +30,6 @@ int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state)
     return 0;
 }
 
-/*void mongo_backend_ismaster_on_read(int fd, short ev, void *arg)*/
-/*{*/
-    /*DEBUG("[fd:%d] ismaster on read", fd);*/
-    /*buffer_t * buf = buffer_new(1024*8);*/
-    /*int ismaster;*/
-    /*buffer_t * hosts = buffer_new(1024*8);*/
-
-    /*len = network_read(fd, buf->ptr, buf->size);*/
-    /*if (len < 0) {*/
-        /*ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));*/
-        /*return;*/
-    /*}*/
-    /*if (len == 0) {*/
-        /*ERROR("lost connection [errno:%d(%s)]", errno, strerror(errno));*/
-        /*close(fd);*/
-        /*return;*/
-    /*}*/
-    /*buf->used += len;*/
-
-    /*mongomsg_decode_ismaster(buf, &ismaster, hosts);*/
-    /*TRACE("ismaster return hosts: %s", host->ptr);*/
-/*}*/
-
-/*void mongo_backend_ismaster_on_write(int fd, short ev, void *arg)*/
-/*{*/
-    /*DEBUG("[fd:%d] ismaster on write", fd);*/
-
-    /*buffer_t * buf = &(g_server.msg_ismaster);*/
-
-    /*len = network_write(fd, buf->ptr, buf->used);*/
-    /*if (len < 0) {*/
-        /*ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));*/
-        /*return;*/
-    /*}*/
-    /*if (len == sess->buf->used) {   //all sent*/
-        /*event_assign(conn->ev, g_server.event_base, fd, EV_READ, mongo_backend_ismaster_on_read, NULL);*/
-        /*event_add(conn->ev, NULL);*/
-    /*}*/
-
-/*}*/
-
-
 void mongo_backend_on_read(int fd, short ev, void *arg)
 {
     int len;
@@ -84,6 +42,7 @@ void mongo_backend_on_read(int fd, short ev, void *arg)
     len = network_read(fd, sess->buf->ptr, sess->buf->size);
     if (len < 0) {
         ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));
+        mongoproxy_session_free(sess);
         return;
     }
     if (len == 0) {
@@ -99,7 +58,7 @@ void mongo_backend_on_write(int fd, short ev, void *arg)
 {
     int len;
 
-    DEBUG("[fd:%d] on connected", fd);
+    DEBUG("[fd:%d] on write", fd);
 
     mongoproxy_session_t *sess = (mongoproxy_session_t *) arg;
     mongo_conn_t *conn = sess->backend_conn;
@@ -110,6 +69,8 @@ void mongo_backend_on_write(int fd, short ev, void *arg)
     len = network_write(fd, sess->buf->ptr, sess->buf->used);
     if (len < 0) {
         ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
+        //TODO: free???
+        mongoproxy_session_free(sess);
         return;
     }
     if (len == sess->buf->used) {   //all sent
@@ -158,6 +119,19 @@ mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend)
     backend->connection_cnt++;
 
     return conn;
+}
+
+mongo_conn_t *mongo_backend_get_conn(mongo_backend_t * backend)
+{
+    mongo_conn_t *conn;
+    if (backend->free_conn) {   //get a free conn on primary
+        conn = backend->free_conn;
+        backend->free_conn = conn->next;
+        return conn;
+    } else {                // new conn on primary
+        return mongo_backend_new_conn(backend);
+    }
+
 }
 
 /*if no replset, the only backend is primary*/
@@ -323,6 +297,7 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
     }
 }
 
+
 int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
 {
     char host[256];
@@ -347,21 +322,36 @@ int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
         return -1;
     }
 
+    mongo_replset_set_check_isprimary(replset);
+
+    replset->primary = replset->slaves[replset->slave_cnt - 1];
+    replset->slave_cnt--;
+    return 0;
+}
+
+int mongo_replset_set_check_isprimary(mongo_replset_t * replset)
+{
+
+    mongoproxy_cfg_t *cfg = &(g_server.cfg);
+    int i;
     //get conn for every backend
-    //
     for (i=0; i< replset->slave_cnt; i++){
         mongoproxy_session_t *sess = mongoproxy_session_new();
         mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
 
-        sess->backend_conn = mongo_backend_new_conn(replset->slaves[i]);
+        sess->backend_conn = mongo_backend_get_conn(replset->slaves[i]);
         buffer_copy_memory(sess->buf, g_server.msg_ismaster.ptr, g_server.msg_ismaster.used); //copy the ismaster msg
 
+
+        struct timeval tm;
+        evutil_timerclear(&tm);
+        tm.tv_sec = cfg->ping_interval / 1000;  // second
+        tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?
+
         event_assign(sess->backend_conn->ev, g_server.event_base, sess->backend_conn->fd, EV_WRITE, mongo_backend_on_write, sess);
-        event_add(sess->backend_conn->ev, NULL);
+        event_add(sess->backend_conn->ev, &tm);
     }
 
-    replset->primary = replset->slaves[replset->slave_cnt - 1];
-    replset->slave_cnt--;
     return 0;
 }
 

@@ -66,7 +66,7 @@ int network_client_socket(char *host, int port)
         return s;
     }
     if (errno == EINPROGRESS) {
-        DEBUG("connecting to %s:%d ... ", host, port);
+        DEBUG("connecting to %s:%d ... [fd:%d]", host, port, s);
         return s;
     }
     ERROR("connect to %s:%d [errno:%d(%s)]", host, port, errno, strerror(errno));
@@ -137,7 +137,7 @@ int32_t network_write(int s, const void *buff, uint32_t len)
     while (sent < len) {
         i = write(s, ((const uint8_t *)buff) + sent, len - sent);
         if (i <= 0) {
-            DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
+            DEBUG("[fd:%d] write return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
             return i;
         }
         sent += i;
