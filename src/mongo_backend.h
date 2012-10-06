@@ -14,7 +14,7 @@ typedef struct mongo_conn_s mongo_conn_t;
 typedef struct mongo_backend_s {
     char *host;
     int port;
-    buffer_t * host_port;
+    buffer_t *host_port;
     int is_primary;
     int last_ping;
 

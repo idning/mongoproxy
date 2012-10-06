@@ -48,8 +48,10 @@ void buffer_free(buffer_t * b)
 
 #define BUFFER_MAX_REUSE_SIZE  (32 * 1024)
 
-void buffer_reset(buffer_t *b) {
-    if (!b) return;
+void buffer_reset(buffer_t * b)
+{
+    if (!b)
+        return;
 
     /* limit don't reuse buffer_t larger than ... bytes */
     if (b->size > BUFFER_MAX_REUSE_SIZE) {
@@ -137,15 +139,18 @@ int buffer_append_memory(buffer_t * b, const void *s, size_t s_len)
     return 0;
 }
 
-int buffer_append_raw_int32(buffer_t * b, int32_t arg){
+int buffer_append_raw_int32(buffer_t * b, int32_t arg)
+{
     return buffer_append_memory(b, &arg, 4);
 }
 
-int buffer_append_raw_int64(buffer_t * b, int64_t arg){
+int buffer_append_raw_int64(buffer_t * b, int64_t arg)
+{
     return buffer_append_memory(b, &arg, 8);
 }
 
-int buffer_append_int32(buffer_t * b, int32_t arg){
+int buffer_append_int32(buffer_t * b, int32_t arg)
+{
     return buffer_append_printf(b, "%d", arg);
 }
 
@@ -166,13 +171,14 @@ int buffer_append_printf(buffer_t * b, char *fmt, ...)
 
     va_start(ap, fmt);
     buffer_prepare_append(b, len);
-    vsprintf(b->ptr+b->used, fmt, ap);
+    vsprintf(b->ptr + b->used, fmt, ap);
     va_end(ap);
     b->used += len;
     return 0;
 }
 
-int buffer_append_trailing_null(buffer_t * b){
+int buffer_append_trailing_null(buffer_t * b)
+{
     return buffer_append_memory(b, "\0", 1);
 }
 

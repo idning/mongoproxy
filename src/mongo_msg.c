@@ -17,33 +17,33 @@ int mongomsg_encode_int_command(buffer_t * buf, const char *db, const char *cmds
     int option = 0;
     int skip = 0;
     int limit = 1;
-    
-    bson_init( &cmd );
-    bson_append_int( &cmd, cmdstr, arg );
-    bson_finish( &cmd );
+
+    bson_init(&cmd);
+    bson_append_int(&cmd, cmdstr, arg);
+    bson_finish(&cmd);
 
     header.message_length = 0;
-    header.request_id = _req_id ++;
+    header.request_id = _req_id++;
     header.response_to = 0;
     header.op_code = OP_QUERY;
 
     buffer_append_memory(buf, &header, sizeof(header));
     buffer_append_raw_int32(buf, option);
     //ns
-    buffer_append_memory(buf, db, strlen(db)); 
-    buffer_append_memory(buf, ".$cmd", strlen(".$cmd")); 
-    buffer_append_memory(buf, "\0", 1); 
+    buffer_append_memory(buf, db, strlen(db));
+    buffer_append_memory(buf, ".$cmd", strlen(".$cmd"));
+    buffer_append_memory(buf, "\0", 1);
 
     buffer_append_raw_int32(buf, skip);
     buffer_append_raw_int32(buf, limit);
 
-    buffer_append_memory(buf, bson_data(&cmd), bson_size(&cmd)); 
+    buffer_append_memory(buf, bson_data(&cmd), bson_size(&cmd));
 
     //update header message_length
     mongomsg_header_t *h = (mongomsg_header_t *) buf->ptr;
     h->message_length = buf->used;
 
-    bson_destroy( &cmd );
+    bson_destroy(&cmd);
 
     return 0;
 }
@@ -81,10 +81,9 @@ int mongomsg_decode_ismaster(buffer_t * buf, int *ismaster, buffer_t * hosts, bu
     bson response;
     bson_init_data(&response, buf->ptr + MONGOMSG_QUERY_HEADER_SIZE);
 
-
     buffer_prepare_copy(hosts, sizeof("255.255.255.255:65536") * 15);
 
-    bson_print(&response); //TODO , print to log
+    bson_print(&response);      //TODO , print to log
 
     if (bson_find(&it, &response, "hosts")) {
         DEBUG("has hosts");

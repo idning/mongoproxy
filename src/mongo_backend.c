@@ -94,7 +94,7 @@ mongo_backend_t *mongo_backend_new(char *host, int port)
     backend->host_port = buffer_new(0);
 
     buffer_append_printf(backend->host_port, "%s:%d", host, port);
-    
+
     return backend;
 }
 
@@ -128,7 +128,7 @@ mongo_conn_t *mongo_backend_get_conn(mongo_backend_t * backend)
         conn = backend->free_conn;
         backend->free_conn = conn->next;
         return conn;
-    } else {                // new conn on primary
+    } else {                    // new conn on primary
         return mongo_backend_new_conn(backend);
     }
 
@@ -157,7 +157,6 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary)
             return mongo_backend_new_conn(backend);
         }
     }
-
     // find one slave conn
     for (i = 0; i < replset->slave_cnt; i++) {
         backend = replset->slaves[i];
@@ -211,45 +210,46 @@ char *_parse_next_ip_port(char *s, char *host, int host_len, int *p_port)
 
     *p_port = atoi(p2 + 1);
     if (p1)
-        return p1+1;
-    else 
+        return p1 + 1;
+    else
         return NULL;
 }
 
-
 /*static int mongo_replset_exist2(mongo_replset_t * replset, buffer_t * host_port){*/
-    /*int i;*/
-    /*if (buffer_is_equal(host_port, replset->primary->host_port)){*/
-        /*return 1;*/
-    /*}*/
-    /*for (i=0; i< replset->slave_cnt; i++){*/
-        /*if (buffer_is_equal(host_port, replset->slaves[i]->host_port)){*/
-            /*return 1;*/
-        /*}*/
-    /*}*/
-    /*return 0;*/
+    /*int i; */
+    /*if (buffer_is_equal(host_port, replset->primary->host_port)){ */
+        /*return 1; */
+    /*} */
+    /*for (i=0; i< replset->slave_cnt; i++){ */
+        /*if (buffer_is_equal(host_port, replset->slaves[i]->host_port)){ */
+            /*return 1; */
+        /*} */
+    /*} */
+    /*return 0; */
 /*}*/
 
-static int mongo_backend_is_equal(char * host1, int port1, char *host2, int port2){
+static int mongo_backend_is_equal(char *host1, int port1, char *host2, int port2)
+{
 
     return (strcmp(host1, host2) == 0) && (port1 == port2);
 }
 
-static int mongo_replset_exist(mongo_replset_t * replset, char * host, int port)
+static int mongo_replset_exist(mongo_replset_t * replset, char *host, int port)
 {
     int i;
-    if (replset->primary && mongo_backend_is_equal(host, port, replset->primary->host, replset->primary->port)){
+    if (replset->primary && mongo_backend_is_equal(host, port, replset->primary->host, replset->primary->port)) {
         return 1;
     }
-    for (i=0; i< replset->slave_cnt; i++){
-        if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)){
+    for (i = 0; i < replset->slave_cnt; i++) {
+        if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)) {
             return 1;
         }
     }
     return 0;
 }
 
-int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t * primary){
+int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t * primary)
+{
     char host[256];
     int port;
     char *p = hosts->ptr;
@@ -258,7 +258,7 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
     while (p && *p) {
         p = _parse_next_ip_port(p, host, sizeof(host), &port);
         DEBUG("parse hosts get: %s:%d", host, port);
-        if (!mongo_replset_exist(replset, host, port)){
+        if (!mongo_replset_exist(replset, host, port)) {
             replset->slaves[replset->slave_cnt] = mongo_backend_new(host, port);
             replset->slave_cnt++;
         }
@@ -268,27 +268,27 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
     //check if primary changed
     p = _parse_next_ip_port(primary->ptr, host, sizeof(host), &port);
 
-    if(!replset->primary){
-        for (i=0; i< replset->slave_cnt; i++){
-            if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)){
+    if (!replset->primary) {
+        for (i = 0; i < replset->slave_cnt; i++) {
+            if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)) {
                 replset->primary = replset->slaves[i];
             }
         }
     }
 
-    if (replset->primary && !mongo_backend_is_equal(host, port, replset->primary->host, replset->primary->port)){ //we got a new primary
+    if (replset->primary && !mongo_backend_is_equal(host, port, replset->primary->host, replset->primary->port)) {  //we got a new primary
 
         replset->slaves[replset->slave_cnt] = replset->primary;
         replset->slave_cnt++;
 
-        for (i=0; i< replset->slave_cnt; i++){
-            if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)){
+        for (i = 0; i < replset->slave_cnt; i++) {
+            if (mongo_backend_is_equal(host, port, replset->slaves[i]->host, replset->slaves[i]->port)) {
                 replset->primary = replset->slaves[i];
             }
         }
         j = 0;
-        for (i=0; i< replset->slave_cnt; i++){
-            if (replset->primary != replset->slaves[i]){
+        for (i = 0; i < replset->slave_cnt; i++) {
+            if (replset->primary != replset->slaves[i]) {
                 replset->slaves[j++] = replset->slaves[i];
             }
         }
@@ -297,14 +297,13 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
     }
 }
 
-
 int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
 {
     char host[256];
     int port;
     char *p = cfg->backend;
-    int i ;
-    mongo_conn_t * conn = NULL;
+    int i;
+    mongo_conn_t *conn = NULL;
     while (p && *p) {
         p = _parse_next_ip_port(p, host, sizeof(host), &port);
         DEBUG("parse backend get: %s:%d", host, port);
@@ -335,20 +334,20 @@ int mongo_replset_set_check_isprimary(mongo_replset_t * replset)
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     int i;
     //get conn for every backend
-    for (i=0; i< replset->slave_cnt; i++){
+    for (i = 0; i < replset->slave_cnt; i++) {
         mongoproxy_session_t *sess = mongoproxy_session_new();
         mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
 
         sess->backend_conn = mongo_backend_get_conn(replset->slaves[i]);
-        buffer_copy_memory(sess->buf, g_server.msg_ismaster.ptr, g_server.msg_ismaster.used); //copy the ismaster msg
-
+        buffer_copy_memory(sess->buf, g_server.msg_ismaster.ptr, g_server.msg_ismaster.used);   //copy the ismaster msg
 
         struct timeval tm;
         evutil_timerclear(&tm);
         tm.tv_sec = cfg->ping_interval / 1000;  // second
         tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?
 
-        event_assign(sess->backend_conn->ev, g_server.event_base, sess->backend_conn->fd, EV_WRITE, mongo_backend_on_write, sess);
+        event_assign(sess->backend_conn->ev, g_server.event_base, sess->backend_conn->fd, EV_WRITE,
+                     mongo_backend_on_write, sess);
         event_add(sess->backend_conn->ev, &tm);
     }
 

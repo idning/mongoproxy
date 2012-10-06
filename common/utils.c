@@ -76,9 +76,8 @@ int daemonize(int nochdir, int noclose)
     return (0);
 }
 
-
-
-char _hex2int(unsigned char hex) {
+char _hex2int(unsigned char hex)
+{
     hex = hex - '0';
     if (hex > 9) {
         hex = (hex + '0' - 1) | 0x20;
@@ -90,12 +89,9 @@ char _hex2int(unsigned char hex) {
     return hex;
 }
 
-
-
-u_char *
-util_raw_to_hex(u_char *dst, u_char *src, size_t src_len)
+u_char *util_raw_to_hex(u_char * dst, u_char * src, size_t src_len)
 {
-    static u_char  hex[] = "0123456789ABCDEF";
+    static u_char hex[] = "0123456789ABCDEF";
 
     while (src_len--) {
         *dst++ = hex[*src >> 4];
@@ -105,19 +101,18 @@ util_raw_to_hex(u_char *dst, u_char *src, size_t src_len)
     return dst;
 }
 
-
-u_char *
-util_hex_to_raw(u_char *dst, u_char *src, size_t src_len){
+u_char *util_hex_to_raw(u_char * dst, u_char * src, size_t src_len)
+{
     int high, low;
     size_t i;
-    u_char * p = src;
-    for (i = 0; i < src_len/2; i++) {
+    u_char *p = src;
+    for (i = 0; i < src_len / 2; i++) {
         high = _hex2int(*p);
-        low = _hex2int(*(p+1));
-        p+=2;
+        low = _hex2int(*(p + 1));
+        p += 2;
         dst[i] = (high << 4) | low;
     }
-    return dst+i;
+    return dst + i;
 }
 
 //urlencode & urldecode
@@ -203,19 +198,18 @@ int url_encode(const char *src, int src_len, char *dest, int *dest_len)
     return *dest_len;
 }
 
-
 #define _min(x,y) ((x)<(y)?(x):(y))
 
-int util_print_buffer(char * hint, buffer_t * b){
-    char dst[1024*4*2];
+int util_print_buffer(char *hint, buffer_t * b)
+{
+    char dst[1024 * 4 * 2];
     int dst_len;
-    int src_len = _min(b->used, 1024*4);
+    int src_len = _min(b->used, 1024 * 4);
     DEBUG("src_len : %d", src_len);
     util_raw_to_hex(dst, b->ptr, src_len);
 
-    /*url_encode(b->ptr, src_len, dst, &dst_len);*/
+    /*url_encode(b->ptr, src_len, dst, &dst_len); */
     DEBUG("%s print_buffer(url_encoded): %s", hint, dst);
 
     return 0;
 }
-

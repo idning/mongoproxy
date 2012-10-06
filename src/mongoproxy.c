@@ -57,9 +57,9 @@ void mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_
 int mongo_backend_handler_ismaster(mongoproxy_session_t * sess)
 {
     int ismaster;
-    buffer_t * hosts = buffer_new(1024);
-    buffer_t * primary = buffer_new(1024);
-    int ret; 
+    buffer_t *hosts = buffer_new(1024);
+    buffer_t *primary = buffer_new(1024);
+    int ret;
     ret = mongomsg_decode_ismaster(sess->buf, &ismaster, hosts, primary);
     TRACE("we got ismaster response: [ismaster:%d] [hosts:%s] [primary:%s]", ismaster, hosts->ptr, primary->ptr);
     mongo_replset_update(&(g_server.replset), hosts, primary);
@@ -81,10 +81,10 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
     if (conn->conn_state == MONGO_CONN_STATE_RECV_RESPONSE) {
         if (_mongoproxy_read_done(sess)) {
             mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
-            if (sess->fd){ //commong session connection.
+            if (sess->fd) {     //commong session connection.
                 mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
-            } else {       // connection for `ping` and `ismaster`
-                mongo_backend_handler_ismaster(sess); //TODO : relaeae conn and session obj
+            } else {            // connection for `ping` and `ismaster`
+                mongo_backend_handler_ismaster(sess);   //TODO : relaeae conn and session obj
                 mongoproxy_session_close(sess);
                 mongoproxy_session_free(sess);
             }
@@ -93,10 +93,9 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
     return 0;
 }
 
-const char * _mongo_proxy_op_code2str(int op)
+const char *_mongo_proxy_op_code2str(int op)
 {
-    switch (op)
-    {
+    switch (op) {
     case OP_REPLY:
         return "OP_REPLY";
     case OP_MSG:
@@ -123,23 +122,22 @@ const char * _mongo_proxy_op_code2str(int op)
 /*
 if need send to primary, return 1
 */
-static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess){
+static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess)
+{
 
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     int *flag;
 
-    mongomsg_header_t * header = (mongomsg_header_t *)sess->buf->ptr;
+    mongomsg_header_t *header = (mongomsg_header_t *) sess->buf->ptr;
     TRACE("[opcode: %s]", _mongo_proxy_op_code2str(header->op_code));
-    if (header->op_code == OP_UPDATE 
-            || header->op_code == OP_DELETE
-            || header->op_code == OP_INSERT){
+    if (header->op_code == OP_UPDATE || header->op_code == OP_DELETE || header->op_code == OP_INSERT) {
         return 1;
     }
 
-    if (cfg->slaveok){ //set "slaveOk" flag
+    if (cfg->slaveok) {         //set "slaveOk" flag
         DEBUG("set 'slaveOk' flag");
-        flag = (int*)((void*)sess->buf->ptr + sizeof(mongomsg_header_t));
-        *flag =(*flag) | (1<<2);
+        flag = (int *)((void *)sess->buf->ptr + sizeof(mongomsg_header_t));
+        *flag = (*flag) | (1 << 2);
     }
 
     return 0;
@@ -234,7 +232,7 @@ void on_event(int fd, short what, void *arg)
             /*sess->buf->used=0; */
         } else if (ret == EVENT_HANDLER_ERROR) {
 
-        } else {//error
+        } else {                //error
             DEBUG("[fd:%d] we will close ", fd);
             close(fd);
             mongoproxy_session_close(sess);
@@ -251,7 +249,7 @@ void on_event(int fd, short what, void *arg)
             /*event_add(sess->ev, NULL); */
         } else if (ret == EVENT_HANDLER_ERROR) {
 
-        } else {//error
+        } else {                //error
 
         }
     }
@@ -260,23 +258,22 @@ void on_event(int fd, short what, void *arg)
 int mongoproxy_print_status()
 {
     mongo_replset_t *replset = &(g_server.replset);
-    mongo_backend_t * backend;
+    mongo_backend_t *backend;
     int i;
 
     char buf[1024];
 
     backend = replset->primary;
-    TRACE("primary [%s:%d=>%d]", 
-            backend->host, backend->port,backend->connection_cnt );
+    TRACE("primary [%s:%d=>%d]", backend->host, backend->port, backend->connection_cnt);
 
-    for (i=0; i< replset->slave_cnt; i++){
+    for (i = 0; i < replset->slave_cnt; i++) {
         backend = replset->slaves[i];
-        TRACE("slaves [%s:%d=>%d]", 
-                backend->host, backend->port,backend->connection_cnt );
+        TRACE("slaves [%s:%d=>%d]", backend->host, backend->port, backend->connection_cnt);
     }
 }
 
-void on_timer(int fd, short what, void *arg){
+void on_timer(int fd, short what, void *arg)
+{
     DEBUG("[fd:%d] on timer", fd);
     mongo_replset_t *replset = &(g_server.replset);
 
@@ -314,7 +311,6 @@ int mongoproxy_init()
     //init msg
     mongomsg_encode_ismaster(&(g_server.msg_ismaster));
     mongomsg_encode_ping(&(g_server.msg_ping));
-
 
     mongo_replset_t *replset = &(g_server.replset);
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
@@ -359,4 +355,3 @@ int mongoproxy_mainloop()
     event_base_dispatch(g_server.event_base);
     return 0;
 }
-

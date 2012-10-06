@@ -19,7 +19,6 @@ typedef struct mongomsg_header_s {
     int32_t op_code;            // request type - see table below
 } mongomsg_header_t;
 
-
 #define MONGOMSG_QUERY_HEADER_SIZE (9*sizeof(int))
 
 // db ops
@@ -32,7 +31,6 @@ typedef struct mongomsg_header_s {
 #define OP_GET_MORE 2005
 #define OP_DELETE 2006
 #define OP_KILL_CURSORS 2007
-
 
 int mongomsg_encode_int_command(buffer_t * buf, const char *db, const char *cmdstr, int arg);
 

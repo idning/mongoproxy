@@ -34,7 +34,7 @@ typedef struct mongoproxy_cfg_s {
     int use_replset;
     int ping_interval;          //ping interval 
     int check_interval;         //ismaster interval
-    int slaveok;         //ismaster interval
+    int slaveok;                //ismaster interval
 } mongoproxy_cfg_t;
 
 #include "mongo_backend.h"

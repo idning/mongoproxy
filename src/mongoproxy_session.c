@@ -51,15 +51,15 @@ int mongoproxy_session_close(mongoproxy_session_t * sess)
 int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary)
 {
     mongo_replset_t *replset = &(g_server.replset);
-    if (sess->backend_conn){ //already got a connection
+    if (sess->backend_conn) {   //already got a connection
         if (sess->backend_conn->backend == replset->primary) {
             return 0;
-        } else { //my conn is not to primary
-            if (primary){
+        } else {                //my conn is not to primary
+            if (primary) {
                 mongo_replset_release_conn(sess->backend_conn);
                 sess->backend_conn = NULL;
-            }else{
-                return 0; 
+            } else {
+                return 0;
             }
         }
     }
