@@ -19,7 +19,6 @@ buffer_t *buffer_new(size_t len)
 
     b = malloc(sizeof(*b));
 
-    DEBUG("_buffer_new: %p", b);
     assert(b);
 
     b->ptr = NULL;
@@ -35,11 +34,9 @@ buffer_t *buffer_new(size_t len)
 
 void buffer_free(buffer_t * b)
 {
-    DEBUG("_buffer_free: %p", b);
     if (!b)
         return;
     if (b->ptr) {
-        DEBUG("_buffer_free_ptr: %p", b->ptr);
         free(b->ptr);
         b->ptr = NULL;
     }
@@ -55,7 +52,6 @@ void buffer_reset(buffer_t * b)
 
     /* limit don't reuse buffer_t larger than ... bytes */
     if (b->size > BUFFER_MAX_REUSE_SIZE) {
-        DEBUG("_buffer_free_ptr: %p", b->ptr);
         free(b->ptr);
         b->ptr = NULL;
         b->size = 0;
@@ -73,7 +69,6 @@ int buffer_prepare_copy(buffer_t * b, size_t size)
 
     if ((0 == b->size) || (size > b->size)) {
         if (b->size && b->ptr) {
-            DEBUG("_buffer_free_ptr: %p", b->ptr);
             free(b->ptr);
             b->ptr = NULL;
         }
@@ -84,7 +79,6 @@ int buffer_prepare_copy(buffer_t * b, size_t size)
         b->size += BUFFER_PIECE_SIZE - (b->size % BUFFER_PIECE_SIZE);
 
         b->ptr = malloc(b->size);
-        DEBUG("_malloc : %p, [b->size:%d] [b->ptr+b->size:%p] ", b->ptr, b->size, b->ptr + b->size);
 
         assert(b->ptr);
     }

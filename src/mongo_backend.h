@@ -14,7 +14,6 @@ typedef struct mongo_conn_s mongo_conn_t;
 typedef struct mongo_backend_s {
     char *host;
     int port;
-    buffer_t *host_port;
     int is_primary;
     int last_ping;
 
@@ -67,6 +66,6 @@ void mongo_conn_send(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_recv(mongo_conn_t * conn, void *buf, int len);
 void mongo_conn_close(mongo_conn_t * conn);
 
-void mongo_backend_on_write(int fd, short ev, void *arg);
+void mongo_backend_on_event(int fd, short ev, void *arg);
 
 #endif

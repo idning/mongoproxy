@@ -31,56 +31,104 @@ int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state)
     return 0;
 }
 
-void mongo_backend_on_read(int fd, short ev, void *arg)
+/**
+ * we use the same function on reading data from client and mongobackend
+ * it will be used in mongo_backend_on_event and mongo_session_on_event
+ */
+event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
 {
     int len;
 
     DEBUG("[fd:%d] on read", fd);
-    mongoproxy_session_t *sess;
-    sess = (mongoproxy_session_t *) arg;
 
-    sess->buf->used = 0;
-    len = network_read(fd, sess->buf->ptr, sess->buf->size);
+    if (sess->buf->used > sizeof(mongomsg_header_t)){
+        mongomsg_header_t *header = (mongomsg_header_t *) sess->buf->ptr;
+        buffer_prepare_append(sess->buf, header->message_length - sess->buf->used);
+    }
+
+    len = network_read(fd, sess->buf->ptr+sess->buf->used, sess->buf->size - sess->buf->used);
     if (len < 0) {
         ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));
-        mongoproxy_session_free(sess);
-        return;
+        return EVENT_HANDLER_ERROR;
     }
     if (len == 0) {
-        ERROR("lost connection [errno:%d(%s)]", errno, strerror(errno));
-        close(fd);
-        return;
+        ERROR("connection closed by peer [errno:%d(%s)]", errno, strerror(errno));
+        return EVENT_HANDLER_FINISHED;
     }
     sess->buf->used += len;
-    mongoproxy_state_machine(sess);
+
+    if (mongomsg_read_done(sess->buf)){
+        return EVENT_HANDLER_FINISHED;
+    }else {
+        return EVENT_HANDLER_WAIT_FOR_EVENT;
+    }
 }
 
-void mongo_backend_on_write(int fd, short ev, void *arg)
+/**
+ * we use the same function on writing data to client and mongobackend
+ * it will be used in mongo_backend_on_event and mongo_session_on_event
+ */
+event_handler_ret_t mongo_backend_on_write(int fd, mongoproxy_session_t * sess)
 {
     int len;
 
     DEBUG("[fd:%d] on write", fd);
 
-    mongoproxy_session_t *sess = (mongoproxy_session_t *) arg;
-    mongo_conn_t *conn = sess->backend_conn;
-
-    mongo_conn_set_state(conn, MONGO_CONN_STATE_SEND_REQUEST);
-
     util_print_buffer("sess->buf", sess->buf);
     len = network_write(fd, sess->buf->ptr, sess->buf->used);
     if (len < 0) {
         ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
-        //TODO: free???
-        mongoproxy_session_free(sess);
-        return;
+        return EVENT_HANDLER_ERROR;
     }
     if (len == sess->buf->used) {   //all sent
-        mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
-        //enable read event
-        //
-        event_assign(conn->ev, g_server.event_base, fd, EV_READ, mongo_backend_on_read, sess);
-        event_add(conn->ev, NULL);
+        DEBUG("[fd:%d]write done ", fd);
+        return EVENT_HANDLER_FINISHED;
     }
+    return EVENT_HANDLER_WAIT_FOR_EVENT;
+}
+
+void mongo_backend_on_event(int fd, short what, void *arg)
+{
+    mongoproxy_session_t *sess = (mongoproxy_session_t *) arg;
+    mongo_conn_t *conn = sess->backend_conn;
+
+    DEBUG("[fd:%d] [what:0x%x]", fd, what);
+
+    if (what & EV_READ) {
+        int ret = mongo_backend_on_read(fd, sess);
+        DEBUG("[fd:%d] on_read return : %d", fd, ret);
+
+        if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
+            //TODO: we need reenable event , or we will fall on large object, let's test it first
+        } else if (ret == EVENT_HANDLER_FINISHED) {
+            mongoproxy_state_machine(sess);
+        } else if (ret == EVENT_HANDLER_ERROR) {                //error
+            DEBUG("[fd:%d] got EVENT_HANDLER_ERROR", fd);
+            goto err;
+        }
+    }
+
+    if (what & EV_WRITE) {
+        int ret = mongo_backend_on_write(fd, sess);
+        DEBUG("[fd:%d] on_write return : %d", fd, ret);
+
+        if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
+            //TODO: we need reenable event , or we will fall on large object, let's test it first
+        } else if (ret == EVENT_HANDLER_FINISHED) {
+            mongoproxy_state_machine(sess);
+
+        } else if (ret == EVENT_HANDLER_ERROR) {                //error
+            DEBUG("[fd:%d] got EVENT_HANDLER_ERROR", fd);
+            goto err;
+        }
+    }
+    return;
+
+err:
+    /*mongo_backend_close_conn(sess->backend_conn);*/
+    sess->backend_conn = NULL;
+    mongoproxy_session_close(sess);
+    mongoproxy_session_free(sess);
 }
 
 mongo_backend_t *mongo_backend_new(char *host, int port)
@@ -91,10 +139,6 @@ mongo_backend_t *mongo_backend_new(char *host, int port)
     backend->host = strdup(host);
     backend->port = port;
     backend->is_primary = 0;
-
-    backend->host_port = buffer_new(0);
-
-    buffer_append_printf(backend->host_port, "%s:%d", host, port);
 
     return backend;
 }
@@ -125,14 +169,13 @@ mongo_conn_t *mongo_backend_new_conn(mongo_backend_t * backend)
 mongo_conn_t *mongo_backend_get_conn(mongo_backend_t * backend)
 {
     mongo_conn_t *conn;
-    if (backend->free_conn) {   //get a free conn on primary
+    if (backend->free_conn) {   //get a free conn on backend
         conn = backend->free_conn;
         backend->free_conn = conn->next;
         return conn;
-    } else {                    // new conn on primary
+    } else {                    // new conn on backend
         return mongo_backend_new_conn(backend);
     }
-
 }
 
 /*if no replset, the only backend is primary*/
@@ -150,13 +193,7 @@ mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary)
 
     if (primary) {
         backend = replset->primary;
-        if (backend->free_conn) {   //get a free conn on primary
-            conn = backend->free_conn;
-            backend->free_conn = conn->next;
-            return conn;
-        } else {                // new conn on primary
-            return mongo_backend_new_conn(backend);
-        }
+        return mongo_backend_get_conn(backend);
     }
     // find one slave conn
     for (i = 0; i < replset->slave_cnt; i++) {
@@ -317,7 +354,6 @@ int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
 
 int mongo_replset_set_check_isprimary(mongo_replset_t * replset)
 {
-
     mongoproxy_cfg_t *cfg = &(g_server.cfg);
     int i;
     //get conn for every backend
@@ -334,15 +370,10 @@ int mongo_replset_set_check_isprimary(mongo_replset_t * replset)
         tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?
 
         event_assign(sess->backend_conn->ev, g_server.event_base, sess->backend_conn->fd, EV_WRITE,
-                     mongo_backend_on_write, sess);
+                     mongo_backend_on_event, sess);
         event_add(sess->backend_conn->ev, &tm);
     }
 
     return 0;
 }
 
-int mongo_replset_set_primary(char *host, int port)
-{
-    return 0;
-
-}

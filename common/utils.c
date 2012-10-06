@@ -204,10 +204,8 @@ int util_print_buffer(char *hint, buffer_t * b)
 {
     u_char dst[1024 * 4 * 2];
     int src_len = _min(b->used, 1024 * 4);
-    DEBUG("src_len : %d", src_len);
+
     util_raw_to_hex(dst, (u_char*)b->ptr, src_len);
-
-    DEBUG("%s print_buffer(url_encoded): %s", hint, dst);
-
+    DEBUG("%s print_buffer(hex, max:4k): %s", hint, dst);
     return 0;
 }

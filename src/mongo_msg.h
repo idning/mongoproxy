@@ -32,12 +32,13 @@ typedef struct mongomsg_header_s {
 #define OP_DELETE 2006
 #define OP_KILL_CURSORS 2007
 
-int mongomsg_encode_int_command(buffer_t * buf, const char *db, const char *cmdstr, int arg);
-
 int mongomsg_encode_ismaster(buffer_t * buf);
 int mongomsg_encode_ping(buffer_t * buf);
 
 int mongomsg_decode_ismaster(buffer_t * buf, int *ismaster, buffer_t * hosts, buffer_t * primary);
 int mongomsg_decode_ping(buffer_t * buf, int *ok);
+
+int mongomsg_read_done(buffer_t * buf);
+const char *mongo_proxy_op_code2str(int op);
 
 #endif

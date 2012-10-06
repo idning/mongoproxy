@@ -10,7 +10,7 @@
 
 static int _req_id = 100000000;
 
-int mongomsg_encode_int_command(buffer_t * buf, const char *db, const char *cmdstr, int arg)
+static int mongomsg_encode_int_command(buffer_t * buf, const char *db, const char *cmdstr, int arg)
 {
     mongomsg_header_t header;
     bson cmd;
@@ -122,3 +122,46 @@ int mongomsg_decode_ping(buffer_t * buf, int *ok)
     *ok = 1;
     return 0;
 }
+
+
+int mongomsg_read_done(buffer_t * buf)
+{
+    mongomsg_header_t *header;
+
+    if (buf->used < sizeof(mongomsg_header_t))
+        return 0;
+
+    header = (mongomsg_header_t *) buf->ptr;
+    int body_len = header->message_length;
+
+    DEBUG("[body_len:%d] [buf->used:%d]", body_len, buf->used);
+    return buf->used >= body_len;
+}
+
+
+const char *mongo_proxy_op_code2str(int op)
+{
+    switch (op) {
+    case OP_REPLY:
+        return "OP_REPLY";
+    case OP_MSG:
+        return "OP_MSG";
+    case OP_GET_BY_OID:
+        return "OP_GET_BY_OID";
+    case OP_QUERY:
+        return "OP_QUERY";
+    case OP_GET_MORE:
+        return "OP_GET_MORE";
+    case OP_KILL_CURSORS:
+        return "OP_KILL_CURSORS";
+    case OP_UPDATE:
+        return "OP_UPDATE";
+    case OP_INSERT:
+        return "OP_INSERT";
+    case OP_DELETE:
+        return "OP_DELETE";
+    default:
+        return "none";
+    }
+}
+

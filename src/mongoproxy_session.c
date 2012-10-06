@@ -29,6 +29,16 @@ void mongoproxy_session_free(mongoproxy_session_t * sess)
     DEBUG("proxy_session free: %p", sess);
     if (!sess)
         return;
+
+    if (sess->ev) {
+        event_free(sess->ev);
+        sess->ev= NULL;
+    }
+    if (sess->client_ip) {
+        free(sess->client_ip);
+        sess->client_ip= NULL;
+    }
+    
     if (sess->buf) {
         buffer_free(sess->buf);
         sess->buf = NULL;
@@ -42,9 +52,15 @@ void mongoproxy_session_free(mongoproxy_session_t * sess)
 
 int mongoproxy_session_close(mongoproxy_session_t * sess)
 {
-    mongo_replset_release_conn(sess->backend_conn);
-    sess->backend_conn = NULL;
-    /*mongoproxy_session_free(sess); */
+    if (sess->backend_conn){
+        mongo_replset_release_conn(sess->backend_conn);
+        sess->backend_conn = NULL;
+        return 0;
+    }
+    if (sess->fd){
+        close(sess->fd);
+    }
+
     return 0;
 }
 

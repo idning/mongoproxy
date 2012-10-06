@@ -8,6 +8,7 @@ clean:
 	find . -name '*.o' | xargs rm -f
 	find . -name '*~' | xargs rm -f
 	find . -name 'core.*' | xargs rm -f
+	find . -name 'vgcore.*' | xargs rm -f
 
 cs:
 	cscope -Rb

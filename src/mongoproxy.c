@@ -15,24 +15,10 @@ mongoproxy_server_t g_server;
 /*#define MONGO_HEAD_LEN (sizeof(int))*/
 #define MONGO_HEAD_LEN (sizeof(mongomsg_header_t))
 
-typedef enum event_handler_ret_s {
-    EVENT_HANDLER_FINISHED = 0,
-    EVENT_HANDLER_ERROR,
-    EVENT_HANDLER_WAIT_FOR_EVENT,
-} event_handler_ret_t;
 
 event_handler_ret_t on_write(int fd, mongoproxy_session_t * sess);
 void on_event(int fd, short what, void *arg);
 
-static int _mongoproxy_read_done(mongoproxy_session_t * sess)
-{
-    if (sess->buf->used < MONGO_HEAD_LEN)
-        return 0;
-    int body_len = *(int *)sess->buf->ptr;
-
-    DEBUG("[body_len:%d] [sess->buf->used:%d]", body_len, sess->buf->used);
-    return sess->buf->used >= body_len;
-}
 
 static char mongoproxy_session_state_names[][50] = {
     "SESSION_STATE_UNSET",
@@ -76,48 +62,36 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
 {
     mongo_conn_t *conn = sess->backend_conn;
 
-    DEBUG("in state machine 2 [conn->conn_state:%s]", mongo_conn_state_name(conn->conn_state));
+    DEBUG("in conn state machine 2 [conn->conn_state:%s]", mongo_conn_state_name(conn->conn_state));
+
+    if (conn->conn_state <= MONGO_CONN_STATE_SEND_REQUEST) {//connecting, connected
+        mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
+        //enable read event
+        sess->buf->used = 0;
+        event_assign(conn->ev, g_server.event_base, conn->fd, EV_READ, mongo_backend_on_event, sess);
+        event_add(conn->ev, NULL);
+        return 0;
+    }
 
     if (conn->conn_state == MONGO_CONN_STATE_RECV_RESPONSE) {
-        if (_mongoproxy_read_done(sess)) {
-            mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
-            if (sess->fd) {     //commong session connection.
-                mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
-            } else {            // connection for `ping` and `ismaster`
-                mongo_backend_handler_ismaster(sess);   //TODO : relaeae conn and session obj
-                mongoproxy_session_close(sess);
-                mongoproxy_session_free(sess);
-            }
+        mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
+        if (sess->fd) {     //commong session connection.
+            mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
+            /*DEBUG("[fd:%d] enable write event ", sess->fd);*/
+            event_assign(sess->ev, g_server.event_base, sess->fd, EV_WRITE, on_event, sess);
+            event_add(sess->ev, NULL);
+            return 0;
+        } else {            // connection for `ping` and `ismaster`
+            mongo_backend_handler_ismaster(sess);   //TODO : relaeae conn and session obj
+            mongoproxy_session_close(sess);
+            mongoproxy_session_free(sess);
+            return 0;
         }
     }
+
     return 0;
 }
 
-const char *_mongo_proxy_op_code2str(int op)
-{
-    switch (op) {
-    case OP_REPLY:
-        return "OP_REPLY";
-    case OP_MSG:
-        return "OP_MSG";
-    case OP_GET_BY_OID:
-        return "OP_GET_BY_OID";
-    case OP_QUERY:
-        return "OP_QUERY";
-    case OP_GET_MORE:
-        return "OP_GET_MORE";
-    case OP_KILL_CURSORS:
-        return "OP_KILL_CURSORS";
-    case OP_UPDATE:
-        return "OP_UPDATE";
-    case OP_INSERT:
-        return "OP_INSERT";
-    case OP_DELETE:
-        return "OP_DELETE";
-    default:
-        return "none";
-    }
-}
 
 /*
 if need send to primary, return 1
@@ -129,7 +103,7 @@ static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess)
     int *flag;
 
     mongomsg_header_t *header = (mongomsg_header_t *) sess->buf->ptr;
-    TRACE("[opcode: %s]", _mongo_proxy_op_code2str(header->op_code));
+    TRACE("[opcode: %s]", mongo_proxy_op_code2str(header->op_code));
     if (header->op_code == OP_UPDATE || header->op_code == OP_DELETE || header->op_code == OP_INSERT) {
         return 1;
     }
@@ -143,6 +117,9 @@ static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess)
     return 0;
 }
 
+/*
+ * enable events when state changed
+ * */
 int mongoproxy_state_machine(mongoproxy_session_t * sess)
 {
     DEBUG("in state machine [sess->proxy_state:%s]", mongoproxy_session_state_name(sess->proxy_state));
@@ -152,107 +129,123 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess)
 
     replset = &(g_server.replset);
 
-    if (sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST) {
-        if (_mongoproxy_read_done(sess)) {
-            mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
-            primary = _mongoproxy_query_should_sendto_primary(sess);
-            mongoproxy_session_select_backend(sess, primary);
-
-            mongo_conn_t *conn = sess->backend_conn;
-            event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_write, sess);
-            event_add(conn->ev, NULL);
-
-            /*return 0; */
-        }
-    }
-    if (sess->proxy_state == SESSION_STATE_PROCESSING) {    //run sub state machine
-        mongo_conn_state_machine(sess);
-    }
-
     if (sess->proxy_state == SESSION_STATE_SEND_BACK_TO_CLIENT) {
-        DEBUG("[fd:%d] enable write event ", sess->fd);
-        event_assign(sess->ev, g_server.event_base, sess->fd, EV_WRITE, on_event, sess);
-        event_add(sess->ev, NULL);
-    } else if (sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST) {
+        mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
+        sess->buf->used = 0;
         DEBUG("[fd:%d] enable read event ", sess->fd);
         event_assign(sess->ev, g_server.event_base, sess->fd, EV_READ, on_event, sess);
         event_add(sess->ev, NULL);
+        return 0;
+
     }
+
+    if (sess->proxy_state == SESSION_STATE_READ_CLIENT_REQUEST) {
+        mongoproxy_set_state(sess, SESSION_STATE_PROCESSING);
+        primary = _mongoproxy_query_should_sendto_primary(sess);
+        mongoproxy_session_select_backend(sess, primary);
+
+        mongo_conn_t *conn = sess->backend_conn;
+        event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_event, sess);
+        event_add(conn->ev, NULL);
+        return 0;
+    }
+
+    if (sess->proxy_state == SESSION_STATE_PROCESSING) {    //run sub state machine
+        return mongo_conn_state_machine(sess);
+    }
+
+    /*if (sess->proxy_state == SESSION_STATE_SEND_BACK_TO_CLIENT) {*/
+        /*DEBUG("[fd:%d] enable write event ", sess->fd);*/
+        /*event_assign(sess->ev, g_server.event_base, sess->fd, EV_WRITE, on_event, sess);*/
+        /*event_add(sess->ev, NULL);*/
+    /*} */
 
     return 0;
 }
 
-event_handler_ret_t on_write(int fd, mongoproxy_session_t * sess)
-{
-    int len;
-    len = network_write(fd, sess->buf->ptr, sess->buf->used);
-    if (len < 0) {
-        ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
-        return EVENT_HANDLER_ERROR;
-    }
-    if (len == sess->buf->used) {   //all sent
-        return EVENT_HANDLER_WAIT_FOR_EVENT;
-    } else {
-        ERROR("TODO ...");
-        return EVENT_HANDLER_ERROR;
-    }
-}
 
-event_handler_ret_t on_read(int fd, mongoproxy_session_t * sess)
-{
-    int len;
-    DEBUG("[fd:%d] on read", fd);
+/*event_handler_ret_t on_read(int fd, mongoproxy_session_t * sess)*/
+/*{*/
+    /*int len;*/
+    /*DEBUG("[fd:%d] on read", fd);*/
 
-    len = network_read(fd, sess->buf->ptr, sess->buf->size);
-    if (len < 0) {
-        ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));
-        return EVENT_HANDLER_ERROR;
-    }
-    if (len == 0) {
-        ERROR("connection peer closed [errno:%d(%s)]", errno, strerror(errno));
-        return EVENT_HANDLER_FINISHED;
-    }
-    sess->buf->used += len;
+    /*if (sess->buf->used > sizeof(mongomsg_header_t)){*/
+        /*mongomsg_header_t *header = (mongomsg_header_t *) sess->buf->ptr;*/
+        /*buffer_prepare_append(sess->buf, header->message_length - sess->buf->used);*/
+    /*}*/
 
-    return EVENT_HANDLER_WAIT_FOR_EVENT;
-}
+    /*len = network_read(fd, sess->buf->ptr, sess->buf->size);*/
+    /*if (len < 0) {*/
+        /*ERROR("error on read [errno:%d(%s)]", errno, strerror(errno));*/
+        /*return EVENT_HANDLER_ERROR;*/
+    /*}*/
+    /*if (len == 0) {*/
+        /*ERROR("connection peer closed [errno:%d(%s)]", errno, strerror(errno));*/
+        /*return EVENT_HANDLER_FINISHED;*/
+    /*}*/
+    /*sess->buf->used += len;*/
+
+    /*return EVENT_HANDLER_WAIT_FOR_EVENT;*/
+/*}*/
+
+/*event_handler_ret_t on_write(int fd, mongoproxy_session_t * sess)*/
+/*{*/
+    /*int len;*/
+    /*len = network_write(fd, sess->buf->ptr, sess->buf->used);*/
+    /*if (len < 0) {*/
+        /*ERROR("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));*/
+        /*return EVENT_HANDLER_ERROR;*/
+    /*}*/
+    /*if (len == sess->buf->used) {   //all sent*/
+        /*return EVENT_HANDLER_WAIT_FOR_EVENT;*/
+    /*} else {*/
+        /*ERROR("TODO ...");*/
+        /*return EVENT_HANDLER_ERROR;*/
+    /*}*/
+/*}*/
 
 void on_event(int fd, short what, void *arg)
 {
     mongoproxy_session_t *sess = (mongoproxy_session_t *) arg;
-
     DEBUG("[fd:%d] [what:0x%x]", fd, what);
-    if (what & EV_READ) {
-        int ret = on_read(fd, sess);
 
+    if (what & EV_READ) {
+        int ret = mongo_backend_on_read(fd, sess);
         DEBUG("[fd:%d] on_read return : %d", fd, ret);
+
         if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
-            mongoproxy_state_machine(sess);
             /*event_add(sess->ev, NULL); */
             /*sess->buf->used=0; */
-        } else if (ret == EVENT_HANDLER_ERROR) {
+        } else if (ret == EVENT_HANDLER_FINISHED) {
+            mongoproxy_state_machine(sess);
 
-        } else {                //error
-            DEBUG("[fd:%d] we will close ", fd);
-            close(fd);
-            mongoproxy_session_close(sess);
-            mongoproxy_session_free(sess);
+        } else if (ret == EVENT_HANDLER_ERROR) {                //error
+            DEBUG("[fd:%d] got EVENT_HANDLER_ERROR", fd);
+            goto err;
         }
     }
 
     if (what & EV_WRITE) {
-        int ret = on_write(fd, sess);
+        int ret = mongo_backend_on_write(fd, sess);
+        DEBUG("[fd:%d] on_write return : %d", fd, ret);
+
         if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
-            mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
-            sess->buf->used = 0;
-            mongoproxy_state_machine(sess);
             /*event_add(sess->ev, NULL); */
-        } else if (ret == EVENT_HANDLER_ERROR) {
-
-        } else {                //error
-
+        } else if (ret == EVENT_HANDLER_FINISHED) {
+            mongoproxy_state_machine(sess);
+        } else if (ret == EVENT_HANDLER_ERROR) {                //error
+            DEBUG("[fd:%d] got EVENT_HANDLER_ERROR", fd);
+            goto err;
         }
     }
+
+    return;
+
+err:
+    /*mongo_backend_close_conn(sess->backend_conn);*/
+    sess->backend_conn = NULL;
+    mongoproxy_session_close(sess);
+    mongoproxy_session_free(sess);
 }
 
 int mongoproxy_print_status()
@@ -345,8 +338,8 @@ int mongoproxy_mainloop()
 
     //init ev_timer
     evutil_timerclear(&tm);
-    tm.tv_sec = cfg->ping_interval / 1000;  // second
-    tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?
+    tm.tv_sec = cfg->check_interval / 1000;  // second
+    tm.tv_usec = cfg->check_interval % 1000; // u second  TODO. 1000*1000?
     ev_timer = event_new(g_server.event_base, -1, EV_PERSIST, on_timer, NULL);
     event_add(ev_timer, &tm);
 

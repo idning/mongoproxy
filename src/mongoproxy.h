@@ -50,6 +50,14 @@ typedef struct mongoproxy_server_s {
 
 } mongoproxy_server_t;
 
+
+
+typedef enum event_handler_ret_s {
+    EVENT_HANDLER_FINISHED = 0,
+    EVENT_HANDLER_ERROR,
+    EVENT_HANDLER_WAIT_FOR_EVENT,
+} event_handler_ret_t;
+
 int mongoproxy_init();
 int mongoproxy_mainloop();
 
