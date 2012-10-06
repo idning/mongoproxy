@@ -9,17 +9,17 @@
 
 /*mongo_replset_t * replset;*/
 
-static char mongo_conn_state_names[][50] = {
-    "mongo_conn_state_UNSET",
-    "mongo_conn_state_CONNECTING",
-    "mongo_conn_state_CONNECTED",
-    "mongo_conn_state_SEND_REQUEST",
-    "mongo_conn_state_RECV_RESPONSE",
-    "mongo_conn_state_CLOSED"
-};
 
 char *mongo_conn_state_name(mongo_conn_state_t state)
 {
+    static char mongo_conn_state_names[][50] = {
+        "mongo_conn_state_UNSET",
+        "mongo_conn_state_CONNECTING",
+        "mongo_conn_state_CONNECTED",
+        "mongo_conn_state_SEND_REQUEST",
+        "mongo_conn_state_RECV_RESPONSE",
+        "mongo_conn_state_CLOSED"
+    };
     return mongo_conn_state_names[(int)state];
 }
 

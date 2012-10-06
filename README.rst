@@ -24,7 +24,7 @@ TODO:
 - handler slave_ok *done*
 - handler primary change
 - client idle
-- server side timeout..
+- server side timeout.. *done*
 - close serverside conn when too many idle conns(easy to do).
 
 config: conf/mongoproxy.cfg ::
