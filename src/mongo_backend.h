@@ -47,6 +47,7 @@ mongo_conn_t *mongo_backend_get_conn(mongo_backend_t * backend);
 
 //void mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg);
 mongo_conn_t *mongo_replset_get_conn(mongo_replset_t * replset, int primary);
+int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t * primary);
 
 int mongo_replset_release_conn(mongo_conn_t * conn);
 

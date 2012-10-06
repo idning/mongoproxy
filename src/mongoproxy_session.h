@@ -34,4 +34,6 @@ void mongoproxy_session_free(mongoproxy_session_t *);
 int mongoproxy_session_close(mongoproxy_session_t * sess);
 int mongoproxy_session_force_primary(mongoproxy_session_t * sess);
 
+int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary);
+
 #endif

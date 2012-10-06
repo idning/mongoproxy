@@ -23,6 +23,7 @@ char *mongo_conn_state_name(mongo_conn_state_t state)
     return mongo_conn_state_names[(int)state];
 }
 
+
 int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state)
 {
     DEBUG("set mongo_conn state %s => %s", mongo_conn_state_name(conn->conn_state), mongo_conn_state_name(state));
@@ -215,19 +216,6 @@ char *_parse_next_ip_port(char *s, char *host, int host_len, int *p_port)
         return NULL;
 }
 
-/*static int mongo_replset_exist2(mongo_replset_t * replset, buffer_t * host_port){*/
-    /*int i; */
-    /*if (buffer_is_equal(host_port, replset->primary->host_port)){ */
-        /*return 1; */
-    /*} */
-    /*for (i=0; i< replset->slave_cnt; i++){ */
-        /*if (buffer_is_equal(host_port, replset->slaves[i]->host_port)){ */
-            /*return 1; */
-        /*} */
-    /*} */
-    /*return 0; */
-/*}*/
-
 static int mongo_backend_is_equal(char *host1, int port1, char *host2, int port2)
 {
 
@@ -295,6 +283,7 @@ int mongo_replset_update(mongo_replset_t * replset, buffer_t * hosts, buffer_t *
         replset->slave_cnt = j;
         TRACE("update set [slave_cnt:%d]", replset->slave_cnt);
     }
+    return 0;
 }
 
 int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
@@ -302,8 +291,6 @@ int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
     char host[256];
     int port;
     char *p = cfg->backend;
-    int i;
-    mongo_conn_t *conn = NULL;
     while (p && *p) {
         p = _parse_next_ip_port(p, host, sizeof(host), &port);
         DEBUG("parse backend get: %s:%d", host, port);

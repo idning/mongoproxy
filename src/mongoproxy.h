@@ -56,6 +56,7 @@ int mongoproxy_mainloop();
 extern mongoproxy_server_t g_server;
 
 void mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state);
+int mongoproxy_state_machine(mongoproxy_session_t * sess);
 
 #define MONGOPROXY_DEFAULT_BUF_SIZE (1024*1024*4)
 

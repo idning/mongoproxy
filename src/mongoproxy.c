@@ -257,11 +257,9 @@ void on_event(int fd, short what, void *arg)
 
 int mongoproxy_print_status()
 {
+    int i;
     mongo_replset_t *replset = &(g_server.replset);
     mongo_backend_t *backend;
-    int i;
-
-    char buf[1024];
 
     backend = replset->primary;
     TRACE("primary [%s:%d=>%d]", backend->host, backend->port, backend->connection_cnt);
@@ -270,6 +268,8 @@ int mongoproxy_print_status()
         backend = replset->slaves[i];
         TRACE("slaves [%s:%d=>%d]", backend->host, backend->port, backend->connection_cnt);
     }
+
+    return 0;
 }
 
 void on_timer(int fd, short what, void *arg)
@@ -305,7 +305,6 @@ void on_accept(int fd, short what, void *arg)
 int mongoproxy_init()
 {
     //init libevent
-    event_init();
     g_server.event_base = event_base_new();
 
     //init msg
