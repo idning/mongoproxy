@@ -90,8 +90,6 @@ event_handler_ret_t mongo_backend_on_write(int fd, mongoproxy_session_t * sess)
 void mongo_backend_on_event(int fd, short what, void *arg)
 {
     mongoproxy_session_t *sess = (mongoproxy_session_t *) arg;
-    mongo_conn_t *conn = sess->backend_conn;
-
     DEBUG("[fd:%d] [what:0x%x]", fd, what);
 
     if (what & EV_READ) {

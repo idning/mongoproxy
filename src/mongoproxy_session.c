@@ -26,7 +26,6 @@ mongoproxy_session_t *mongoproxy_session_new()
 
 void mongoproxy_session_free(mongoproxy_session_t * sess)
 {
-    DEBUG("proxy_session free: %p", sess);
     if (!sess)
         return;
 
@@ -38,7 +37,6 @@ void mongoproxy_session_free(mongoproxy_session_t * sess)
         free(sess->client_ip);
         sess->client_ip= NULL;
     }
-    
     if (sess->buf) {
         buffer_free(sess->buf);
         sess->buf = NULL;
