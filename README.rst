@@ -29,6 +29,7 @@ TODO:
 - client idle
 - server side timeout.. *done*
 - close serverside conn when too many idle conns(easy to do).
+- session logid
 
 config: conf/mongoproxy.cfg ::
 

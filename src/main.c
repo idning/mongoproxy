@@ -46,6 +46,8 @@ int init(int argc, char **argv)
 
     init_sig_handler();
 
+    srandom(time(NULL));
+
     while ((ch = getopt(argc, argv, "vduc:h?")) != -1) {
         switch (ch) {
         case 'd':              //no daemon

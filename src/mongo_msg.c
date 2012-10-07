@@ -191,7 +191,7 @@ int mongomsg_dump(buffer_t * buf, buffer_t * out)
         return -1; 
     }
 
-    buffer_append_printf(out, "{message_length:%d, request_id:%d, response_to:%d, op:%s} ", 
+    buffer_append_printf(out, "{message_length:%d, request_id:%u, response_to:%d, op:%s} ", 
             header->message_length, header->request_id, header->response_to, mongo_proxy_op_code2str(header->op_code));
 
     if(OP_KILL_CURSORS == header->op_code || OP_MSG == header->op_code) {
@@ -215,7 +215,6 @@ int mongomsg_dump(buffer_t * buf, buffer_t * out)
         limit = (int32_t *) skip + 1;
         doc1 = (void*) (limit + 1);
         buffer_append_printf(out, "{flags:0x%x, skip:%d, limit:%d} ", *flags, *skip, *limit); 
-        DEBUG("out:%s", out->ptr);
         _bson_dump(doc1, 0, out);
         break;
 

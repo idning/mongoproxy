@@ -68,4 +68,18 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess);
 
 #define MONGOPROXY_DEFAULT_BUF_SIZE (1024*1024*4)
 
+
+#define ERROR_S(fmt, ...) \
+    (ERROR("[session:%lu] [client_fd:%d]" fmt, sess->sessionid, sess->fd, ## __VA_ARGS__), 0)
+
+#define WARNING_S(fmt, ...) \
+    (WARNING("[session:%lu] [client_fd:%d]" fmt, sess->sessionid, sess->fd, ## __VA_ARGS__), 0)
+#define NOTICE_S(fmt, ...) \
+    (NOTICE("[session:%lu] [client_fd:%d]" fmt, sess->sessionid, sess->fd, ## __VA_ARGS__), 0)
+#define TRACE_S(fmt, ...) \
+    (TRACE("[session:%lu] [client_fd:%d]" fmt, sess->sessionid, sess->fd, ## __VA_ARGS__), 0)
+#define DEBUG_S(fmt, ...) \
+    (DEBUG("[session:%lu] [client_fd:%d]" fmt, sess->sessionid, sess->fd, ## __VA_ARGS__), 0)
+
+
 #endif

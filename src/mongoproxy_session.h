@@ -25,6 +25,7 @@ typedef struct mongoproxy_session_s {
     struct event *ev;
     char *client_ip;
     int client_port;
+    uint64_t sessionid;
 
     buffer_t *buf;
 } mongoproxy_session_t;

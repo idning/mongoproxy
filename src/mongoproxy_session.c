@@ -17,10 +17,13 @@ mongoproxy_session_t *mongoproxy_session_new()
     }
     memset(sess, 0, sizeof(*sess));
 
-    DEBUG("proxy_session new : %p", sess);
 
     sess->proxy_state = SESSION_STATE_UNSET;
     sess->buf = buffer_new(MONGOPROXY_DEFAULT_BUF_SIZE);
+    sess->sessionid = random(); 
+    sess->sessionid = sess->sessionid<<32 | random();
+
+    DEBUG_S("proxy_session new : %p", sess);
     return sess;
 }
 
@@ -77,11 +80,11 @@ int mongoproxy_session_select_backend(mongoproxy_session_t * sess, int primary)
             }
         }
     }
-    DEBUG("we will use a new backend_conn, [primary:%d]", primary);
+    DEBUG_S("we will use a new backend_conn, [primary:%d]", primary);
 
     sess->backend_conn = mongo_replset_get_conn(replset, primary);
     if (!sess->backend_conn) {
-        ERROR("get no connection");
+        ERROR_S("get no connection");
         return -1;
     }
 

@@ -24,9 +24,10 @@ char *mongoproxy_session_state_name(mongoproxy_session_state_t state)
     return mongoproxy_session_state_names[(int)state];
 }
 
+
 void mongoproxy_set_state(mongoproxy_session_t * sess, mongoproxy_session_state_t state)
 {
-    DEBUG("set mongo_proxy_state %s => %s",
+    DEBUG_S("set mongo_proxy_state %s => %s",
           mongoproxy_session_state_name(sess->proxy_state), mongoproxy_session_state_name(state));
     sess->proxy_state = state;
 }
@@ -38,7 +39,7 @@ int mongo_backend_handler_ismaster(mongoproxy_session_t * sess)
     buffer_t *primary = buffer_new(1024);
     int ret;
     ret = mongomsg_decode_ismaster(sess->buf, &ismaster, hosts, primary);
-    TRACE("we got ismaster response: [ismaster:%d] [hosts:%s] [primary:%s]", ismaster, hosts->ptr, primary->ptr);
+    TRACE_S("we got ismaster response: [ismaster:%d] [hosts:%s] [primary:%s]", ismaster, hosts->ptr, primary->ptr);
     mongo_replset_update(&(g_server.replset), hosts, primary);
     buffer_free(hosts);
     buffer_free(primary);
@@ -49,7 +50,7 @@ int mongo_backend_handler_ismaster(mongoproxy_session_t * sess)
 static int _mongoproxy_query_has_response(mongoproxy_session_t * sess)
 {
     mongomsg_header_t *header = (mongomsg_header_t *) sess->buf->ptr;
-    TRACE("[opcode: %s]", mongo_proxy_op_code2str(header->op_code));
+    TRACE_S("[opcode: %s]", mongo_proxy_op_code2str(header->op_code));
     if (header->op_code == OP_QUERY || header->op_code == OP_GET_MORE ) {
         return 1;
     }
@@ -63,19 +64,19 @@ static int _mongoproxy_query_should_sendto_primary(mongoproxy_session_t * sess)
     int *flag;
     buffer_t * out = buffer_new(1024);
     mongomsg_dump(sess->buf, out);
-    TRACE("[query: %s]", out->ptr);
+    TRACE_S("[query: %s]", out->ptr);
     buffer_free(out);
     
     
 
     mongomsg_header_t *header = (mongomsg_header_t *) sess->buf->ptr;
-    TRACE("[opcode: %s]", mongo_proxy_op_code2str(header->op_code));
+    TRACE_S("[opcode: %s]", mongo_proxy_op_code2str(header->op_code));
     if (header->op_code == OP_UPDATE || header->op_code == OP_DELETE || header->op_code == OP_INSERT) {
         return 1;
     }
 
     if (cfg->slaveok) {         //set "slaveOk" flag
-        DEBUG("set 'slaveOk' flag");
+        DEBUG_S("set 'slaveOk' flag");
         flag = (int *)((void *)sess->buf->ptr + sizeof(mongomsg_header_t));
         *flag = (*flag) | (1 << 2);
     }
@@ -91,24 +92,24 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
 {
     mongo_conn_t *conn = sess->backend_conn;
 
-    DEBUG("in conn state machine 2 [conn->conn_state:%s]", mongo_conn_state_name(conn->conn_state));
+    DEBUG_S("in conn state machine 2 [conn->conn_state:%s]", mongo_conn_state_name(conn->conn_state));
 
     if (conn->conn_state <= MONGO_CONN_STATE_SEND_REQUEST) {//connecting, connected
         if (_mongoproxy_query_has_response(sess)){
             mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
             //enable read event
             sess->buf->used = 0;
-            DEBUG("[fd:%d] enable read event on backend", conn->fd);
+            DEBUG_S("[fd:%d] enable read event on backend", conn->fd);
             event_assign(conn->ev, g_server.event_base, conn->fd, EV_READ, mongo_backend_on_event, sess);
             event_add(conn->ev, NULL);
             return 0;
         }else { // no response
-            DEBUG("has no response, we will waiting for the next request");
+            DEBUG_S("has no response, we will waiting for the next request");
             mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
 
             mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
             sess->buf->used = 0;
-            DEBUG("[fd:%d] enable read event on clientside", sess->fd);
+            DEBUG_S("[fd:%d] enable read event on clientside", sess->fd);
             event_assign(sess->ev, g_server.event_base, sess->fd, EV_READ, mongo_backend_on_event, sess);
             event_add(sess->ev, NULL);
 
@@ -120,7 +121,7 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
         mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
         if (sess->fd) {     //commong session connection.
             mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
-            DEBUG("[fd:%d] enable write event on clientside", sess->fd);
+            DEBUG_S("[fd:%d] enable write event on clientside", sess->fd);
             event_assign(sess->ev, g_server.event_base, sess->fd, EV_WRITE, mongo_backend_on_event, sess);
             event_add(sess->ev, NULL);
             return 0;
@@ -142,7 +143,7 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
  * */
 int mongoproxy_state_machine(mongoproxy_session_t * sess)
 {
-    DEBUG("in state machine [sess->proxy_state:%s]", mongoproxy_session_state_name(sess->proxy_state));
+    DEBUG_S("in state machine [sess->proxy_state:%s]", mongoproxy_session_state_name(sess->proxy_state));
 
     mongo_replset_t *replset;
     int primary = 0;
@@ -156,7 +157,7 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess)
 
         mongo_conn_t *conn = sess->backend_conn;
 
-        DEBUG("[fd:%d] enable write event on backend", conn->fd);
+        DEBUG_S("[fd:%d] enable write event on backend", conn->fd);
         event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_event, sess);
         event_add(conn->ev, NULL);
         return 0;
@@ -164,7 +165,7 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess)
     if (sess->proxy_state == SESSION_STATE_SEND_BACK_TO_CLIENT) {
         mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
         sess->buf->used = 0;
-        DEBUG("[fd:%d] enable read event on clientside", sess->fd);
+        DEBUG_S("[fd:%d] enable read event on clientside", sess->fd);
         event_assign(sess->ev, g_server.event_base, sess->fd, EV_READ, mongo_backend_on_event, sess);
         event_add(sess->ev, NULL);
         return 0;
@@ -223,13 +224,14 @@ void on_accept(int fd, short what, void *arg)
         return;
     }
 
-    DEBUG("accept new fd [fd:%d]", client_fd);
     sess = mongoproxy_session_new();
     sess->fd = client_fd;
     mongoproxy_set_state(sess, SESSION_STATE_READ_CLIENT_REQUEST);
 
+    DEBUG_S("accept new fd [fd:%d] and enable read event", client_fd);
     sess->ev = event_new(g_server.event_base, client_fd, EV_READ, mongo_backend_on_event, sess);
     event_add(sess->ev, NULL);
+
 }
 
 int mongoproxy_init()

@@ -13,7 +13,7 @@
 
 typedef struct mongomsg_header_s {
     int32_t message_length;     // total message size, including this
-    int32_t request_id;         // identifier for this message
+    uint32_t request_id;         // identifier for this message
     int32_t response_to;        // requestID from the original request
     //   (used in reponses from db)
     int32_t op_code;            // request type - see table below
