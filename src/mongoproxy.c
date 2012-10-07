@@ -95,7 +95,7 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
     DEBUG_S("in conn state machine 2 [conn->conn_state:%s]", mongo_conn_state_name(conn->conn_state));
 
     if (conn->conn_state <= MONGO_CONN_STATE_SEND_REQUEST) {//connecting, connected
-        if (_mongoproxy_query_has_response(sess)){
+        if (_mongoproxy_query_has_response(sess)){ // wait backent response
             mongo_conn_set_state(conn, MONGO_CONN_STATE_RECV_RESPONSE);
             //enable read event
             sess->buf->used = 0;
@@ -103,7 +103,7 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
             event_assign(conn->ev, g_server.event_base, conn->fd, EV_READ, mongo_backend_on_event, sess);
             event_add(conn->ev, NULL);
             return 0;
-        }else { // no response
+        }else { // no response, we wait for next client_side request
             DEBUG_S("has no response, we will waiting for the next request");
             mongo_conn_set_state(conn, MONGO_CONN_STATE_CONNECTED);
 
@@ -122,6 +122,7 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
         if (sess->fd) {     //commong session connection.
             mongoproxy_set_state(sess, SESSION_STATE_SEND_BACK_TO_CLIENT);
             DEBUG_S("[fd:%d] enable write event on clientside", sess->fd);
+            sess->bytes_sent = 0;
             event_assign(sess->ev, g_server.event_base, sess->fd, EV_WRITE, mongo_backend_on_event, sess);
             event_add(sess->ev, NULL);
             return 0;
@@ -158,6 +159,7 @@ int mongoproxy_state_machine(mongoproxy_session_t * sess)
         mongo_conn_t *conn = sess->backend_conn;
 
         DEBUG_S("[fd:%d] enable write event on backend", conn->fd);
+        sess->bytes_sent = 0;
         event_assign(conn->ev, g_server.event_base, conn->fd, EV_WRITE, mongo_backend_on_event, sess);
         event_add(conn->ev, NULL);
         return 0;

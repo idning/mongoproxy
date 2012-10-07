@@ -22,16 +22,20 @@ what's better:
 
 TODO: 
 
-- print request_id into log
-- dump request & response
+- print request_id into log *done*
+- dump request & response *done*
 - handler slave_ok *done*
 - handler primary change
 - client idle
-- server side timeout.. *done*
+- server side timeout. *done*
 - close serverside conn when too many idle conns(easy to do).
-- session logid
+- ssl support
+- smart clients may use ismaster to find out backends, we should hide this
 
-config: conf/mongoproxy.cfg ::
+config
+=============
+
+conf/mongoproxy.cfg ::
 
     MONGOPROXY_BIND = 0.0.0.0
     MONGOPROXY_PORT = 9527
@@ -46,7 +50,10 @@ config: conf/mongoproxy.cfg ::
     #MONGOPROXY_BACKEND = 127.0.0.1:27017
     MONGOPROXY_BACKEND = 127.0.0.1:30001,127.0.0.1:30003
 
-usage::
+usage
+============
+
+::
 
     ning@ning-laptop ~/idning/blog_and_notes$ mongo --port 9527 
     MongoDB shell version: 2.0.6
@@ -66,7 +73,20 @@ usage::
     PRIMARY> 
 
 
-Reference:
+test
+=============
+
+use pymongo testcases::
+
+    git clone https://github.com/mongodb/mongo-python-driver
+    cd mongo-python-driver 
+    export DB_PORT=9527
+
+    nosetests -I test_ssl -vx
+
+
+Reference
+================
 
 - http://www.mongodb.org/display/DOCS/Mongo+Wire+Protocol#MongoWireProtocol-OPQUERY
 - https://github.com/interactive-matter/bson-c  (MongoDB C Driver)

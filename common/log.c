@@ -68,20 +68,36 @@ int log_init(char *logfile)
 
 int log_print(int level, char *fmt, ...)
 {
-    /*fprintf(stderr, "%d . %d", level, log_level); */
-    if (level < log_level)
-        return 0;
     char stmp[10240];
     char *buf = stmp;
+    int ret;
+    int size;
+
+    if (level < log_level)
+        return 0;
     puttime(&buf);
     putlevel(&buf, level);
     putthread(&buf);
 
+
+    size = sizeof(stmp) - (buf-stmp);
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buf, sizeof(stmp) - 30, fmt, ap);
+    ret = vsnprintf(buf, size, fmt, ap);
     va_end(ap);
+
+    if(ret >= size ){//truncated.
+        stmp[sizeof(stmp)-7] = '.';
+        stmp[sizeof(stmp)-6] = '.';
+        stmp[sizeof(stmp)-5] = '.';
+        stmp[sizeof(stmp)-4] = '.';
+        stmp[sizeof(stmp)-3] = '.';
+        stmp[sizeof(stmp)-2] = '.';
+        stmp[sizeof(stmp)-1] = '\0';
+    }
+#ifdef DDEBUG
     fprintf(stderr, "%s\n", stmp);
+#endif
     if (fout) {
         fprintf(fout, "%s\n", stmp);
         fflush(fout);

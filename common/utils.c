@@ -205,7 +205,9 @@ int util_print_buffer(char *hint, buffer_t * b)
     u_char dst[1024 * 4 * 2];
     int src_len = _min(b->used, 1024 * 4);
 
-    util_raw_to_hex(dst, (u_char*)b->ptr, src_len);
-    DEBUG("%s print_buffer(hex, max:4k): %s", hint, dst);
+    char * p = util_raw_to_hex(dst, (u_char*)b->ptr, src_len);
+    *p = NULL;
+
+    DEBUG("%s print_buffer(hex) [used:%d]: %s", hint, b->used, dst);
     return 0;
 }

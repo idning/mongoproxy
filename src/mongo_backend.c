@@ -55,8 +55,8 @@ event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
         return EVENT_HANDLER_ERROR;
     }
     if (len == 0) {
-        ERROR_S("connection closed by peer [errno:%d(%s)]", errno, strerror(errno));
-        return EVENT_HANDLER_ERROR; //we will clean it
+        ERROR_S("connection closed by peer(read len == 0) [errno:%d(%s)]", errno, strerror(errno));
+        return EVENT_HANDLER_ERROR; 
     }
     sess->buf->used += len;
 
@@ -74,20 +74,26 @@ event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
 event_handler_ret_t mongo_backend_on_write(int fd, mongoproxy_session_t * sess)
 {
     int len;
+    int tosend;
 
     DEBUG_S("[fd:%d] on write", fd);
 
     util_print_buffer("sess->buf", sess->buf);
-    len = network_write(fd, sess->buf->ptr, sess->buf->used);
+    tosend = sess->buf->used- sess->bytes_sent;
+    len = network_write(fd, sess->buf->ptr+sess->bytes_sent, tosend);
     if (len < 0) {
         ERROR_S("[fd:%d]error on write [errno:%d(%s)]", fd, errno, strerror(errno));
         return EVENT_HANDLER_ERROR;
     }
-    if (len == sess->buf->used) {   //all sent
+    sess->bytes_sent += len;
+
+    DEBUG_S("[fd:%d] [sess->bytes_sent:%d]", fd, sess->bytes_sent);
+    if (sess->bytes_sent == sess->buf->used) {   //all sent
         DEBUG_S("[fd:%d]write done ", fd);
         return EVENT_HANDLER_FINISHED;
+    }else{
+        return EVENT_HANDLER_WAIT_FOR_EVENT;
     }
-    return EVENT_HANDLER_WAIT_FOR_EVENT;
 }
 
 void mongo_backend_on_event(int fd, short what, void *arg)

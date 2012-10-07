@@ -113,14 +113,18 @@ int32_t network_read(int s, void *buff, uint32_t len)
     int i;
 
     while (recvd < len) {
+        errno = 0; //TODO
         i = read(s, ((uint8_t *) buff) + recvd, len - recvd);
-        if (i <= 0) {
-            /*DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));*/
+        if (i < 0) {
+            DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
             if (errno == EAGAIN) {  // we will return success
                 break;
             }
             ERROR("oops, read from [fd:%d] failed: [errno:%d(%s)]", s, errno, strerror(errno));
             return -1;
+        }if (i==0){
+            DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
+            break;
         }
         recvd += i;
     }
@@ -136,8 +140,11 @@ int32_t network_write(int s, const void *buff, uint32_t len)
 
     while (sent < len) {
         i = write(s, ((const uint8_t *)buff) + sent, len - sent);
-        if (i <= 0) {
+        if (i < 0) {
             DEBUG("[fd:%d] write return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
+            if (errno == EAGAIN) {  // we will return success
+                break;
+            }
             return i;
         }
         sent += i;
