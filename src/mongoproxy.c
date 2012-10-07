@@ -127,7 +127,7 @@ int mongo_conn_state_machine(mongoproxy_session_t * sess)
             event_add(sess->ev, NULL);
             return 0;
         } else {            // connection for `ping` and `ismaster`
-            mongo_backend_handler_ismaster(sess);   //TODO : relaeae conn and session obj
+            mongo_backend_handler_ismaster(sess);   
             mongoproxy_session_close(sess);
             mongoproxy_session_free(sess);
             return 0;
@@ -280,7 +280,7 @@ int mongoproxy_mainloop()
     //init ev_timer
     evutil_timerclear(&tm);
     tm.tv_sec = cfg->check_interval / 1000;  // second
-    tm.tv_usec = cfg->check_interval % 1000; // u second  TODO. 1000*1000?
+    tm.tv_usec = cfg->check_interval % 1000; // micro second  
     ev_timer = event_new(g_server.event_base, -1, EV_PERSIST, on_timer, NULL);
     event_add(ev_timer, &tm);
 

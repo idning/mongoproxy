@@ -108,7 +108,6 @@ void mongo_backend_on_event(int fd, short what, void *arg)
 
         if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
             renable_event |= EV_READ;
-            //TODO: we need reenable event , or we will fall on large object, let's test it first
         } else if (ret == EVENT_HANDLER_FINISHED) {
             mongoproxy_state_machine(sess);
         } else if (ret == EVENT_HANDLER_ERROR) {                //error
@@ -122,7 +121,6 @@ void mongo_backend_on_event(int fd, short what, void *arg)
         DEBUG_S("[fd:%d] on_write return : %d", fd, ret);
 
         if (ret == EVENT_HANDLER_WAIT_FOR_EVENT) {
-            //TODO: we need reenable event , or we will fall on large object, let's test it first
             renable_event |= EV_WRITE;
         } else if (ret == EVENT_HANDLER_FINISHED) {
             mongoproxy_state_machine(sess);
@@ -391,7 +389,7 @@ int mongo_replset_set_check_isprimary(mongo_replset_t * replset)
         struct timeval tm;
         evutil_timerclear(&tm);
         tm.tv_sec = cfg->ping_interval / 1000;  // second
-        tm.tv_usec = cfg->ping_interval % 1000; // u second  TODO. 1000*1000?
+        tm.tv_usec = cfg->ping_interval % 1000; // micro second 
 
         event_assign(sess->backend_conn->ev, g_server.event_base, sess->backend_conn->fd, EV_WRITE,
                      mongo_backend_on_event, sess);

@@ -257,7 +257,7 @@ int mongomsg_dump(buffer_t * buf, buffer_t * out)
         buffer_append_printf(out, "[flags:0x%x]", *flags);
         _bson_dump(doc1, 0, out);
 
-        //TODO
+        //TODO. there is something more
         break;
     default:
         WARNING("bad mongo op [op:%d]", header->op_code);
