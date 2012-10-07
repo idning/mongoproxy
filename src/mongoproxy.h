@@ -52,11 +52,12 @@ typedef struct mongoproxy_server_s {
 
 
 
-typedef enum event_handler_ret_s {
+typedef enum event_handler_s {
     EVENT_HANDLER_FINISHED = 0,
-    EVENT_HANDLER_ERROR,
     EVENT_HANDLER_WAIT_FOR_EVENT,
-} event_handler_ret_t;
+    EVENT_HANDLER_ERROR,
+    EVENT_HANDLER_CLOSED,
+} event_handler_t;
 
 int mongoproxy_init();
 int mongoproxy_mainloop();

@@ -35,7 +35,7 @@ int mongo_conn_set_state(mongo_conn_t * conn, mongo_conn_state_t state)
  * we use the same function on reading data from client and mongobackend
  * it will be used in mongo_backend_on_event and mongo_session_on_event
  */
-event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
+event_handler_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
 {
     int len;
     int toread;
@@ -56,7 +56,7 @@ event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
     }
     if (len == 0) {
         ERROR_S("connection closed by peer(read len == 0) [errno:%d(%s)]", errno, strerror(errno));
-        return EVENT_HANDLER_ERROR; 
+        return EVENT_HANDLER_CLOSED; 
     }
     sess->buf->used += len;
 
@@ -71,7 +71,7 @@ event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
  * we use the same function on writing data to client and mongobackend
  * it will be used in mongo_backend_on_event and mongo_session_on_event
  */
-event_handler_ret_t mongo_backend_on_write(int fd, mongoproxy_session_t * sess)
+event_handler_t mongo_backend_on_write(int fd, mongoproxy_session_t * sess)
 {
     int len;
     int tosend;
@@ -113,6 +113,8 @@ void mongo_backend_on_event(int fd, short what, void *arg)
         } else if (ret == EVENT_HANDLER_ERROR) {                //error
             DEBUG_S("[fd:%d] got EVENT_HANDLER_ERROR", fd);
             goto err;
+        }else if (ret == EVENT_HANDLER_CLOSED){
+            goto closed;
         }
     }
 
@@ -147,6 +149,8 @@ void mongo_backend_on_event(int fd, short what, void *arg)
 err:
     /*mongo_backend_close_conn(sess->backend_conn);*/ //TODO
     sess->backend_conn = NULL;
+
+closed:
     mongoproxy_session_close(sess);
     mongoproxy_session_free(sess);
 }
