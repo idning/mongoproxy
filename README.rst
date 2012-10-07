@@ -8,6 +8,7 @@ mongoproxy is just like mysqlproxy:
 
 why:
 
+- load-balance on primary and secondary.
 - mongo-php-drive is too heavy to create a connection
 - too many php workers, too many connections
 - client should not to know it's a replset(no slaveok for client)
