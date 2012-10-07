@@ -8,6 +8,8 @@
 
 #include "mongo_msg.h"
 
+static void _bson_dump(const char *data , int depth, buffer_t * out ) ;
+
 static int _req_id = 100000000;
 
 static int mongomsg_encode_int_command(buffer_t * buf, const char *db, const char *cmdstr, int arg)
@@ -163,5 +165,194 @@ const char *mongo_proxy_op_code2str(int op)
     default:
         return "none";
     }
+}
+
+
+/*
+ * what a protocol...
+ * we need strlen(ns)..
+ * copy this from chensi
+*/
+int mongomsg_dump(buffer_t * buf, buffer_t * out)
+{
+    mongomsg_header_t *header= (mongomsg_header_t *) buf->ptr;
+
+    int i;
+    char* ns ;
+    int32_t *flags = NULL;
+    int32_t *skip = NULL;
+    int32_t *limit = NULL;
+    void * doc1 = NULL;
+    void * doc2 = NULL;
+
+    int64_t * cursor = NULL;
+
+    if (!buf || !out){
+        return -1; 
+    }
+
+    buffer_append_printf(out, "{message_length:%d, request_id:%d, response_to:%d, op:%s} ", 
+            header->message_length, header->request_id, header->response_to, mongo_proxy_op_code2str(header->op_code));
+
+    if(OP_KILL_CURSORS == header->op_code || OP_MSG == header->op_code) {
+        ns = "none";
+    }else {
+        ns = buf->ptr+ sizeof(mongomsg_header_t) + 4; 
+    }
+    buffer_append_printf(out, "{ns:%s} ",ns); 
+
+    switch(header->op_code)
+    {
+    case OP_MSG:
+        buffer_append_printf(out, "{OP_MSG} "); 
+    case OP_GET_BY_OID:
+        buffer_append_printf(out, "{OP_GET_BY_OID} "); 
+    case OP_REPLY:
+        buffer_append_printf(out, "{OP_REPLY} "); 
+    case OP_QUERY:
+        flags = (int32_t *) (buf->ptr+sizeof(mongomsg_header_t));
+        skip = (int32_t *) ((void*)flags + sizeof(int32_t)+ strlen(ns) + 1); 
+        limit = (int32_t *) skip + 1;
+        doc1 = (void*) (limit + 1);
+        buffer_append_printf(out, "{flags:0x%x, skip:%d, limit:%d} ", *flags, *skip, *limit); 
+        DEBUG("out:%s", out->ptr);
+        _bson_dump(doc1, 0, out);
+        break;
+
+    case OP_GET_MORE:
+        limit = (int32_t*) (buf->ptr + sizeof(mongomsg_header_t)
+                + sizeof(int32_t)  + strlen(ns) + 1);
+        cursor = (int64_t*)(buf->ptr + sizeof(mongomsg_header_t)
+                + sizeof(int32_t) * 2 + strlen(ns) + 1);
+        buffer_append_printf(out, "[cursor:%ld] [limit:%d]", *cursor, *limit);
+        break;
+    case OP_KILL_CURSORS:
+        limit = (int32_t*)(buf->ptr + sizeof(mongomsg_header_t) +
+                sizeof(int32_t));
+    
+        buffer_append_printf(out, "cursors:[");
+        for(i = 0; i < (*limit ); ++i)
+        {
+            cursor = (int64_t*) (buf->ptr + sizeof(mongomsg_header_t) + sizeof(int32_t) * 2 + sizeof(int64_t) * i);
+            buffer_append_printf(out, "%ld,", *cursor);
+        }
+        buffer_append_printf(out, "]");
+        break;
+    case OP_INSERT:
+        flags = (int32_t*)(buf->ptr + sizeof(mongomsg_header_t));
+        doc1 = buf->ptr + sizeof(mongomsg_header_t) + sizeof(int32_t) + strlen(ns) + 1;
+
+        buffer_append_printf(out, "[flags:0x%x]", *flags);
+        _bson_dump(doc1, 0, out);
+        break;
+    case OP_DELETE:
+        flags = (int32_t*)(buf->ptr + sizeof(mongomsg_header_t) + strlen(ns) + 1 + sizeof(int32_t));
+        doc1 = buf->ptr + sizeof(mongomsg_header_t) + sizeof(int32_t) * 2 + strlen(ns) + 1;
+
+        buffer_append_printf(out, "[flags:0x%x]", *flags);
+        _bson_dump(doc1, 0, out);
+        break;
+    case OP_UPDATE:
+        flags = (int32_t*)(buf->ptr + sizeof(mongomsg_header_t) + strlen(ns) + 1 + sizeof(int32_t));
+        doc1 = buf->ptr + sizeof(mongomsg_header_t) + sizeof(int32_t) * 2 + strlen(ns) + 1;
+        buffer_append_printf(out, "[flags:0x%x]", *flags);
+        _bson_dump(doc1, 0, out);
+
+        //TODO
+        break;
+    default:
+        WARNING("bad mongo op [op:%d]", header->op_code);
+    }
+
+    return 0;
+}
+
+
+void _bson_dump(const char *data , int depth, buffer_t * out ) {
+    bson_iterator i;
+    const char *key;
+    int temp;
+    bson_timestamp_t ts;
+    char oidhex[25];
+    bson scope;
+
+    bson_iterator_from_buffer( &i, data );
+
+    buffer_append_printf(out, "{");
+
+    while ( bson_iterator_next( &i ) ) {
+        bson_type t = bson_iterator_type( &i );
+        if ( t == 0 )
+            break;
+        key = bson_iterator_key( &i );
+
+        buffer_append_printf(out, "%s:" , key);
+        switch ( t ) {
+            case BSON_DOUBLE:
+                buffer_append_printf(out, "%f" , bson_iterator_double( &i ) );
+                break;
+            case BSON_STRING:
+                buffer_append_printf(out, "%s" , bson_iterator_string( &i ) );
+                break;
+            case BSON_SYMBOL:
+                buffer_append_printf(out, "SYMBOL: %s" , bson_iterator_string( &i ) );
+                break;
+            case BSON_OID:
+                bson_oid_to_string( bson_iterator_oid( &i ), oidhex );
+                buffer_append_printf(out, "%s" , oidhex );
+                break;
+            case BSON_BOOL:
+                buffer_append_printf(out, "%s" , bson_iterator_bool( &i ) ? "true" : "false" );
+                break;
+            case BSON_DATE:
+                buffer_append_printf(out, "%ld" , ( long int )bson_iterator_date( &i ) );
+                break;
+            case BSON_BINDATA:
+                buffer_append_printf(out, "BSON_BINDATA" );
+                break;
+            case BSON_UNDEFINED:
+                buffer_append_printf(out, "BSON_UNDEFINED" );
+                break;
+            case BSON_NULL:
+                buffer_append_printf(out, "BSON_NULL" );
+                break;
+            case BSON_REGEX:
+                buffer_append_printf(out, "BSON_REGEX: %s", bson_iterator_regex( &i ) );
+                break;
+            case BSON_CODE:
+                buffer_append_printf(out, "BSON_CODE: %s", bson_iterator_code( &i ) );
+                break;
+            case BSON_CODEWSCOPE:
+                buffer_append_printf(out, "BSON_CODE_W_SCOPE: %s", bson_iterator_code( &i ) );
+                /* bson_init( &scope ); */ /* review - stepped on by bson_iterator_code_scope? */
+                bson_iterator_code_scope( &i, &scope );
+                buffer_append_printf(out, "\n\t SCOPE: " );
+                bson_print( &scope );
+                /* bson_destroy( &scope ); */ /* review - causes free error */
+                break;
+            case BSON_INT:
+                buffer_append_printf(out, "%d" , bson_iterator_int( &i ) );
+                break;
+            case BSON_LONG:
+                buffer_append_printf(out, "%lld" , ( uint64_t )bson_iterator_long( &i ) );
+                break;
+            case BSON_TIMESTAMP:
+                ts = bson_iterator_timestamp( &i );
+                buffer_append_printf(out, "i: %d, t: %d", ts.i, ts.t );
+                break;
+            case BSON_OBJECT:
+            case BSON_ARRAY:
+                buffer_append_printf(out, "\n" );
+                _bson_dump( bson_iterator_value( &i ) , depth + 1, out);
+                break;
+
+            default:
+                ERROR( "can't dump type : %d\n" , t );
+        }
+
+        buffer_append_printf(out, "," );
+    }
+
+    buffer_append_printf(out, "}");
 }
 

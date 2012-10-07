@@ -41,4 +41,6 @@ int mongomsg_decode_ping(buffer_t * buf, int *ok);
 int mongomsg_read_done(buffer_t * buf);
 const char *mongo_proxy_op_code2str(int op);
 
+int mongomsg_dump(buffer_t * buf, buffer_t * out);
+
 #endif

@@ -53,7 +53,7 @@ event_handler_ret_t mongo_backend_on_read(int fd, mongoproxy_session_t * sess)
     }
     if (len == 0) {
         ERROR("connection closed by peer [errno:%d(%s)]", errno, strerror(errno));
-        return EVENT_HANDLER_FINISHED;
+        return EVENT_HANDLER_ERROR; //we will clean it
     }
     sess->buf->used += len;
 
@@ -123,7 +123,7 @@ void mongo_backend_on_event(int fd, short what, void *arg)
     return;
 
 err:
-    /*mongo_backend_close_conn(sess->backend_conn);*/
+    /*mongo_backend_close_conn(sess->backend_conn);*/ //TODO
     sess->backend_conn = NULL;
     mongoproxy_session_close(sess);
     mongoproxy_session_free(sess);

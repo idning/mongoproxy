@@ -115,7 +115,7 @@ int32_t network_read(int s, void *buff, uint32_t len)
     while (recvd < len) {
         i = read(s, ((uint8_t *) buff) + recvd, len - recvd);
         if (i <= 0) {
-            DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));
+            /*DEBUG("[fd:%d] read return %d [errno:%d(%s)]", s, i, errno, strerror(errno));*/
             if (errno == EAGAIN) {  // we will return success
                 break;
             }
