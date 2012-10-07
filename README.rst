@@ -2,7 +2,7 @@
 
 mongoproxy is just like mysqlproxy: 
 
-.. image:: docs/mysql-proxy-types-trx-splitting.png
+.. image:: https://raw.github.com/idning/mongoproxy/master/docs/mysql-proxy-types-trx-splitting.png
 
 (image from mysqlproxy)
 
