@@ -173,7 +173,11 @@ void on_timer(int fd, short what, void *arg)
     DEBUG("[fd:%d] on timer", fd);
     mongo_replset_t *replset = &(g_server.replset);
 
-    mongo_replset_set_check_isprimary(replset);
+    mongoproxy_cfg_t * cfg = &(g_server.cfg);
+
+    if (cfg->use_replset){
+        mongo_replset_set_check_isprimary(replset);
+    }
 
     mongoproxy_print_status();
 }

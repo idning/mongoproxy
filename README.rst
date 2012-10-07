@@ -1,10 +1,16 @@
 .. contents:: Table of Contents
 
+mongoproxy is just like mysqlproxy: 
+
+.. image:: docs/mysql-proxy-types-trx-splitting.png
+
+(image from mysqlproxy)
+
 why:
 
 - mongo-php-drive is too heavy to create a connection
 - too many php workers, too many connections
-- client do not to know it's a replset(no slaveok for client)
+- client should not to know it's a replset(no slaveok for client)
 
 what's better: 
 
@@ -12,10 +18,6 @@ what's better:
 - avoid blocking ping before querys.
 - one client => one server conn
 
-design:
-
-- one backend is a mongd
-- backends became a replset
 
 TODO: 
 

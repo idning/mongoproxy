@@ -343,7 +343,9 @@ int mongo_replset_init(mongo_replset_t * replset, mongoproxy_cfg_t * cfg)
         return -1;
     }
 
-    mongo_replset_set_check_isprimary(replset);
+    if (cfg->use_replset){
+        mongo_replset_set_check_isprimary(replset);
+    }
 
     replset->primary = replset->slaves[replset->slave_cnt - 1];
     replset->slave_cnt--;
